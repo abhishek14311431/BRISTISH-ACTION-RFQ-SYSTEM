@@ -7,16 +7,45 @@ import AuctionDetail from "./pages/AuctionDetail";
 const Navbar = () => {
   const navigate = useNavigate();
   return (
-    <nav className="bg-blue-700 text-white px-6 py-4 flex items-center justify-between shadow">
-      <div className="font-bold text-lg">British Auction — RFQ System</div>
-      <div className="flex items-center space-x-4">
-        <Link to="/" className="hover:underline font-medium">All Auctions</Link>
-        <button
-          className="bg-white text-blue-700 font-semibold px-4 py-2 rounded hover:bg-blue-100 transition"
-          onClick={() => navigate("/create")}
+    <nav style={{ width: "100%", height: "4rem", backgroundColor: "#1e3a5f", color: "white", padding: "0 1rem", display: "flex", alignItems: "center", justifyContent: "space-between", boxShadow: "0 10px 15px rgba(0,0,0,0.1)" }}>
+      <Link to="/" style={{ fontWeight: "bold", fontSize: "1.125rem", letterSpacing: "0.05em", color: "white", textDecoration: "none" }}>
+        🏛️ British Auction RFQ System
+      </Link>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", justifyContent: "center" }}>
+        <Link
+          to="/"
+          style={{
+            padding: "0.5rem 0.75rem",
+            borderRadius: "0.375rem",
+            fontSize: "0.875rem",
+            fontWeight: "500",
+            color: "white",
+            textDecoration: "none",
+            transition: "background-color 0.2s",
+            backgroundColor: "transparent",
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.1)"}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
         >
-          Create RFQ
-        </button>
+          📋 All Auctions
+        </Link>
+        <Link
+          to="/create-rfq"
+          style={{
+            padding: "0.5rem 0.75rem",
+            borderRadius: "0.375rem",
+            fontSize: "0.875rem",
+            fontWeight: "500",
+            color: "white",
+            textDecoration: "none",
+            backgroundColor: "#2563eb",
+            transition: "background-color 0.2s",
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#1d4ed8"}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#2563eb"}
+        >
+          ✏️ Create RFQ
+        </Link>
       </div>
     </nav>
   );
@@ -26,10 +55,10 @@ const App = () => {
   return (
     <Router>
       <Navbar />
-      <div className="min-h-screen bg-gray-50">
+      <div style={{ minHeight: "calc(100vh - 4rem)", backgroundColor: "#f1f5f9" }}>
         <Routes>
           <Route path="/" element={<AuctionList />} />
-          <Route path="/create" element={<CreateRFQ />} />
+          <Route path="/create-rfq" element={<CreateRFQ />} />
           <Route path="/rfq/:id" element={<AuctionDetail />} />
         </Routes>
       </div>

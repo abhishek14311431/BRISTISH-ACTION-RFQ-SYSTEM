@@ -58,7 +58,7 @@ const CreateRFQ = () => {
         extension_duration_minutes: Number(form.extension_duration_minutes),
       };
       await createRFQ(payload);
-      navigate("/auction-list");
+      navigate("/");
     } catch (error) {
       setErrors({ submit: error.response?.data?.detail || "Failed to create RFQ." });
     } finally {
@@ -67,133 +67,301 @@ const CreateRFQ = () => {
   };
 
   return (
-    <div className="max-w-xl mx-auto mt-10 bg-white p-8 rounded shadow-md">
-      <h2 className="text-2xl font-bold mb-6 text-center">Create New RFQ</h2>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block font-medium mb-1">RFQ Name</label>
-          <input
-            type="text"
-            name="name"
-            value={form.name}
-            onChange={handleChange}
-            className="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-400"
-            required
-          />
+    <div style={{ backgroundColor: "#f1f5f9", minHeight: "100vh", padding: "3rem 1rem" }}>
+      <div style={{ maxWidth: "56rem", margin: "0 auto" }}>
+        {/* Header */}
+        <div style={{ marginBottom: "2rem" }}>
+          <h1 style={{ fontSize: "2.25rem", fontWeight: "bold", color: "#1e3a5f", marginBottom: "0.5rem" }}>
+            📋 Create New RFQ
+          </h1>
+          <p style={{ color: "#64748b" }}>Set up and configure a new auction request for quotation</p>
         </div>
-        <div>
-          <label className="block font-medium mb-1">Reference ID</label>
-          <input
-            type="text"
-            name="reference_id"
-            value={form.reference_id}
-            onChange={handleChange}
-            className="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-400"
-            required
-          />
+
+        {/* Form Card */}
+        <div style={{ backgroundColor: "#ffffff", borderRadius: "0.75rem", boxShadow: "0 10px 25px rgba(0,0,0,0.1)", overflow: "hidden" }}>
+          <div style={{ height: "4px", backgroundColor: "#2563eb" }}></div>
+          
+          <form onSubmit={handleSubmit} style={{ padding: "2rem", display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+            {/* Basic Information */}
+            <div>
+              <h3 style={{ fontSize: "1.125rem", fontWeight: "600", color: "#1e3a5f", marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "2rem", height: "2rem", borderRadius: "50%", backgroundColor: "#dbeafe", color: "#2563eb", fontWeight: "bold" }}>1</span>
+                <span>Basic Information</span>
+              </h3>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "1rem" }}>
+                <div>
+                  <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", color: "#374151", marginBottom: "0.5rem" }}>RFQ Name *</label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={form.name}
+                    onChange={handleChange}
+                    style={{
+                      width: "100%",
+                      padding: "0.625rem 1rem",
+                      border: "2px solid #e5e7eb",
+                      borderRadius: "0.5rem",
+                      fontSize: "1rem",
+                      color: "#1f2937",
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = "#2563eb"}
+                    onBlur={(e) => e.target.style.borderColor = "#e5e7eb"}
+                    placeholder="e.g., Transportation Q1 2026"
+                    required
+                  />
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", color: "#374151", marginBottom: "0.5rem" }}>Reference ID *</label>
+                  <input
+                    type="text"
+                    name="reference_id"
+                    value={form.reference_id}
+                    onChange={handleChange}
+                    style={{
+                      width: "100%",
+                      padding: "0.625rem 1rem",
+                      border: "2px solid #e5e7eb",
+                      borderRadius: "0.5rem",
+                      fontSize: "1rem",
+                      color: "#1f2937",
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = "#2563eb"}
+                    onBlur={(e) => e.target.style.borderColor = "#e5e7eb"}
+                    placeholder="e.g., RFQ-2026-001"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div style={{ borderBottom: "2px solid #e2e8f0" }}></div>
+
+            {/* Timeline */}
+            <div>
+              <h3 style={{ fontSize: "1.125rem", fontWeight: "600", color: "#1e3a5f", marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "2rem", height: "2rem", borderRadius: "50%", backgroundColor: "#dcfce7", color: "#16a34a", fontWeight: "bold" }}>2</span>
+                <span>📅 Timeline</span>
+              </h3>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "1rem" }}>
+                <div>
+                  <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", color: "#374151", marginBottom: "0.5rem" }}>Bid Start Date & Time *</label>
+                  <input
+                    type="datetime-local"
+                    name="bid_start_time"
+                    value={form.bid_start_time}
+                    onChange={handleChange}
+                    style={{
+                      width: "100%",
+                      padding: "0.625rem 1rem",
+                      border: "2px solid #e5e7eb",
+                      borderRadius: "0.5rem",
+                      fontSize: "1rem",
+                      color: "#1f2937",
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = "#2563eb"}
+                    onBlur={(e) => e.target.style.borderColor = "#e5e7eb"}
+                    required
+                  />
+                  {errors.bid_start_time && <p style={{ color: "#dc2626", fontSize: "0.875rem", marginTop: "0.25rem" }}>⚠️ {errors.bid_start_time}</p>}
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", color: "#374151", marginBottom: "0.5rem" }}>Bid Close Date & Time *</label>
+                  <input
+                    type="datetime-local"
+                    name="bid_close_time"
+                    value={form.bid_close_time}
+                    onChange={handleChange}
+                    style={{
+                      width: "100%",
+                      padding: "0.625rem 1rem",
+                      border: "2px solid #e5e7eb",
+                      borderRadius: "0.5rem",
+                      fontSize: "1rem",
+                      color: "#1f2937",
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = "#2563eb"}
+                    onBlur={(e) => e.target.style.borderColor = "#e5e7eb"}
+                    required
+                  />
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", color: "#374151", marginBottom: "0.5rem" }}>Forced Close Date & Time *</label>
+                  <input
+                    type="datetime-local"
+                    name="forced_close_time"
+                    value={form.forced_close_time}
+                    onChange={handleChange}
+                    style={{
+                      width: "100%",
+                      padding: "0.625rem 1rem",
+                      border: "2px solid #e5e7eb",
+                      borderRadius: "0.5rem",
+                      fontSize: "1rem",
+                      color: "#1f2937",
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = "#2563eb"}
+                    onBlur={(e) => e.target.style.borderColor = "#e5e7eb"}
+                    required
+                  />
+                  {errors.forced_close_time && <p style={{ color: "#dc2626", fontSize: "0.875rem", marginTop: "0.25rem" }}>⚠️ {errors.forced_close_time}</p>}
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", color: "#374151", marginBottom: "0.5rem" }}>Pickup / Service Date *</label>
+                  <input
+                    type="date"
+                    name="pickup_date"
+                    value={form.pickup_date}
+                    onChange={handleChange}
+                    style={{
+                      width: "100%",
+                      padding: "0.625rem 1rem",
+                      border: "2px solid #e5e7eb",
+                      borderRadius: "0.5rem",
+                      fontSize: "1rem",
+                      color: "#1f2937",
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = "#2563eb"}
+                    onBlur={(e) => e.target.style.borderColor = "#e5e7eb"}
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div style={{ borderBottom: "2px solid #e2e8f0" }}></div>
+
+            {/* Extension Settings */}
+            <div>
+              <h3 style={{ fontSize: "1.125rem", fontWeight: "600", color: "#1e3a5f", marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "2rem", height: "2rem", borderRadius: "50%", backgroundColor: "#f3e8ff", color: "#7c3aed", fontWeight: "bold" }}>3</span>
+                <span>⚙️ Extension Settings</span>
+              </h3>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "1rem" }}>
+                <div>
+                  <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", color: "#374151", marginBottom: "0.5rem" }}>Trigger Window (min) *</label>
+                  <input
+                    type="number"
+                    name="trigger_window_minutes"
+                    value={form.trigger_window_minutes}
+                    onChange={handleChange}
+                    style={{
+                      width: "100%",
+                      padding: "0.625rem 1rem",
+                      border: "2px solid #e5e7eb",
+                      borderRadius: "0.5rem",
+                      fontSize: "1rem",
+                      color: "#1f2937",
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = "#2563eb"}
+                    onBlur={(e) => e.target.style.borderColor = "#e5e7eb"}
+                    required
+                    min="1"
+                    placeholder="10"
+                  />
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", color: "#374151", marginBottom: "0.5rem" }}>Extension Duration (min) *</label>
+                  <input
+                    type="number"
+                    name="extension_duration_minutes"
+                    value={form.extension_duration_minutes}
+                    onChange={handleChange}
+                    style={{
+                      width: "100%",
+                      padding: "0.625rem 1rem",
+                      border: "2px solid #e5e7eb",
+                      borderRadius: "0.5rem",
+                      fontSize: "1rem",
+                      color: "#1f2937",
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = "#2563eb"}
+                    onBlur={(e) => e.target.style.borderColor = "#e5e7eb"}
+                    required
+                    min="1"
+                    placeholder="5"
+                  />
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", color: "#374151", marginBottom: "0.5rem" }}>Trigger Type *</label>
+                  <select
+                    name="extension_trigger_type"
+                    value={form.extension_trigger_type}
+                    onChange={handleChange}
+                    style={{
+                      width: "100%",
+                      padding: "0.625rem 1rem",
+                      border: "2px solid #e5e7eb",
+                      borderRadius: "0.5rem",
+                      fontSize: "1rem",
+                      color: "#1f2937",
+                      backgroundColor: "#ffffff",
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = "#2563eb"}
+                    onBlur={(e) => e.target.style.borderColor = "#e5e7eb"}
+                    required
+                  >
+                    {triggerOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Error Message */}
+            {errors.submit && (
+              <div style={{ backgroundColor: "#fee2e2", borderLeft: "4px solid #dc2626", padding: "1rem", borderRadius: "0.375rem" }}>
+                <p style={{ color: "#b91c1c", fontWeight: "500" }}>⚠️ {errors.submit}</p>
+              </div>
+            )}
+
+            {/* Buttons */}
+            <div style={{ display: "flex", gap: "1rem", paddingTop: "1rem" }}>
+              <button
+                type="submit"
+                style={{
+                  flex: 1,
+                  backgroundColor: "#16a34a",
+                  color: "white",
+                  fontWeight: "600",
+                  padding: "0.75rem",
+                  borderRadius: "0.5rem",
+                  border: "none",
+                  cursor: submitting ? "not-allowed" : "pointer",
+                  opacity: submitting ? 0.5 : 1,
+                  transition: "background-color 0.2s",
+                }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = submitting ? "#16a34a" : "#15803d"}
+                onMouseLeave={(e) => e.target.style.backgroundColor = "#16a34a"}
+                disabled={submitting}
+              >
+                {submitting ? "⏳ Creating..." : "✅ Create RFQ"}
+              </button>
+              <button
+                type="button"
+                style={{
+                  flex: 1,
+                  backgroundColor: "#f3f4f6",
+                  color: "#374151",
+                  fontWeight: "600",
+                  padding: "0.75rem",
+                  borderRadius: "0.5rem",
+                  border: "none",
+                  cursor: "pointer",
+                  transition: "background-color 0.2s",
+                }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = "#e5e7eb"}
+                onMouseLeave={(e) => e.target.style.backgroundColor = "#f3f4f6"}
+                onClick={() => navigate("/")}
+              >
+                ❌ Cancel
+              </button>
+            </div>
+          </form>
         </div>
-        <div>
-          <label className="block font-medium mb-1">Bid Start Date & Time</label>
-          <input
-            type="datetime-local"
-            name="bid_start_time"
-            value={form.bid_start_time}
-            onChange={handleChange}
-            className="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-400"
-            required
-          />
-          {errors.bid_start_time && <p className="text-red-500 text-sm mt-1">{errors.bid_start_time}</p>}
-        </div>
-        <div>
-          <label className="block font-medium mb-1">Bid Close Date & Time</label>
-          <input
-            type="datetime-local"
-            name="bid_close_time"
-            value={form.bid_close_time}
-            onChange={handleChange}
-            className="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-400"
-            required
-          />
-        </div>
-        <div>
-          <label className="block font-medium mb-1">Forced Bid Close Date & Time</label>
-          <input
-            type="datetime-local"
-            name="forced_close_time"
-            value={form.forced_close_time}
-            onChange={handleChange}
-            className="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-400"
-            required
-          />
-          {errors.forced_close_time && <p className="text-red-500 text-sm mt-1">{errors.forced_close_time}</p>}
-        </div>
-        <div>
-          <label className="block font-medium mb-1">Pickup / Service Date</label>
-          <input
-            type="date"
-            name="pickup_date"
-            value={form.pickup_date}
-            onChange={handleChange}
-            className="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-400"
-            required
-          />
-        </div>
-        <div>
-          <label className="block font-medium mb-1">Trigger Window X Minutes</label>
-          <input
-            type="number"
-            name="trigger_window_minutes"
-            value={form.trigger_window_minutes}
-            onChange={handleChange}
-            className="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-400"
-            required
-            min="1"
-          />
-        </div>
-        <div>
-          <label className="block font-medium mb-1">Extension Duration Y Minutes</label>
-          <input
-            type="number"
-            name="extension_duration_minutes"
-            value={form.extension_duration_minutes}
-            onChange={handleChange}
-            className="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-400"
-            required
-            min="1"
-          />
-        </div>
-        <div>
-          <label className="block font-medium mb-1">Extension Trigger Type</label>
-          <select
-            name="extension_trigger_type"
-            value={form.extension_trigger_type}
-            onChange={handleChange}
-            className="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-400"
-            required
-          >
-            {triggerOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-        </div>
-        {errors.submit && <p className="text-red-500 text-sm mt-2 text-center">{errors.submit}</p>}
-        <div className="flex space-x-2">
-          <button
-            type="submit"
-            className="w-full bg-green-600 text-white font-semibold py-2 rounded hover:bg-green-700 transition"
-            disabled={submitting}
-          >
-            {submitting ? "Creating..." : "Create RFQ"}
-          </button>
-          <button
-            type="button"
-            className="w-full bg-gray-200 text-gray-700 font-semibold py-2 rounded hover:bg-gray-300 transition"
-            onClick={() => navigate("/")}
-          >
-            Cancel
-          </button>
-        </div>
-      </form>
+      </div>
     </div>
   );
 };

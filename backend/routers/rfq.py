@@ -2,9 +2,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from ..database import SessionLocal
-from ..models import RFQ, Bid, AuctionEvent
-from ..schemas import RFQ as RFQSchema, RFQBase, Bid as BidSchema
+from database import SessionLocal
+from models import RFQ, Bid, AuctionEvent
+from schemas import RFQ as RFQSchema, RFQBase, Bid as BidSchema
 from pydantic import BaseModel
 from datetime import datetime
 

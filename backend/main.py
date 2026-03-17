@@ -2,9 +2,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.background import BackgroundScheduler
-from .database import engine, Base, SessionLocal
-from .routers import rfq, bids
-from .services.auction_engine import AuctionEngine
+from database import engine, Base, SessionLocal
+from routers import rfq, bids
+from services.auction_engine import AuctionEngine
 
 app = FastAPI(title="British Auction RFQ System")
 
@@ -25,6 +25,15 @@ app.include_router(bids.router)
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
+
+# Root endpoint for quick API discovery
+@app.get("/")
+def root():
+    return {
+        "message": "British Auction RFQ API is running",
+        "health": "/health",
+        "docs": "/docs",
+    }
 
 # On startup: create all tables and start scheduler
 @app.on_event("startup")

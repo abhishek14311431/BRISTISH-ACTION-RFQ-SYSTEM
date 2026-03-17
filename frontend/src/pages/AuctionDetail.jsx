@@ -1,23 +1,23 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { getRFQDetail, submitBid } from "../api/axios";
 import BidTable from "../components/BidTable";
 import ActivityLog from "../components/ActivityLog";
 
 const statusBadge = (status) => {
-  const color =
-    status === "active"
-      ? "bg-green-100 text-green-700"
-      : status === "force_closed"
-      ? "bg-red-100 text-red-700"
-      : "bg-gray-100 text-gray-700";
-  const label =
-    status === "active"
-      ? "Active"
-      : status === "force_closed"
-      ? "Force Closed"
-      : "Closed";
-  return <span className={`px-2 py-1 rounded text-xs font-semibold ${color}`}>{label}</span>;
+  const badges = {
+    active: { bg: "#dcfce7", text: "#166534", icon: "🟢" },
+    force_closed: { bg: "#fee2e2", text: "#8e1919", icon: "🔴" },
+    closed: { bg: "#f3f4f6", text: "#374151", icon: "⭕" },
+  };
+  const badge = badges[status] || badges.closed;
+  const label = status === "active" ? "Active" : status === "force_closed" ? "Force Closed" : "Closed";
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: "0.25rem", padding: "0.5rem 1rem", borderRadius: "9999px", fontSize: "0.875rem", fontWeight: "600", backgroundColor: badge.bg, color: badge.text }}>
+      <span style={{ fontSize: "1.125rem" }}>{badge.icon}</span>
+      <span>{label}</span>
+    </span>
+  );
 };
 
 const formatDateTime = (dt) => {
@@ -47,11 +47,16 @@ const CountdownTimer = ({ endTime }) => {
     }, 1000);
     return () => clearInterval(interval);
   }, [endTime]);
-  return <span className="font-mono text-lg">{timeLeft}</span>;
+  return (
+    <span style={{ fontFamily: "monospace", fontSize: "1.5rem", fontWeight: "bold", color: "#2563eb" }}>
+      {timeLeft}
+    </span>
+  );
 };
 
 const AuctionDetail = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [rfq, setRfq] = useState(null);
   const [loading, setLoading] = useState(true);
   const [bidForm, setBidForm] = useState({
@@ -104,7 +109,7 @@ const AuctionDetail = () => {
         quote_validity: bidForm.quote_validity,
       };
       await submitBid(id, payload);
-      setBidSuccess("Bid submitted successfully!");
+      setBidSuccess("✅ Bid submitted successfully!");
       setBidForm({
         carrier_name: "",
         freight_charges: "",
@@ -122,139 +127,339 @@ const AuctionDetail = () => {
   };
 
   if (loading) {
-    return <div className="max-w-3xl mx-auto mt-10 text-center text-gray-500">Loading...</div>;
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ textAlign: "center" }}>
+          <svg className="animate-spin h-12 w-12 text-blue-600 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" style={{ animation: "spin 1s linear infinite", margin: "1rem auto" }}><circle className="opacity-25" cx="12" cy="12" r="10" stroke="#2563eb" strokeWidth="4"></circle><path className="opacity-75" fill="#2563eb" d="M4 12a8 8 0 018-8v8z"></path></svg>
+          <p style={{ color: "#6b7280", fontWeight: "500" }}>⏳ Loading auction details...</p>
+        </div>
+      </div>
+    );
   }
+
   if (!rfq) {
-    return <div className="max-w-3xl mx-auto mt-10 text-center text-red-500">RFQ not found.</div>;
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ textAlign: "center" }}>
+          <svg style={{ width: "4rem", height: "4rem", color: "#dc2626", margin: "0 auto 1rem auto" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4m0 4v.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          <h2 style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#1f2937", marginBottom: "0.5rem" }}>❌ RFQ Not Found</h2>
+          <button onClick={() => navigate("/")} style={{ color: "#2563eb", fontWeight: "500", cursor: "pointer" }}>← Back to Auctions</button>
+        </div>
+      </div>
+    );
   }
 
-  // Section 1: RFQ Info Card
   return (
-    <div className="max-w-3xl mx-auto mt-10 bg-white p-8 rounded shadow-md">
-      <div className="mb-8">
-        <div className="flex justify-between items-center mb-2">
-          <h2 className="text-2xl font-bold">{rfq.name}</h2>
-          {statusBadge(rfq.status)}
-        </div>
-        <div className="mb-2 text-gray-600">Reference ID: <span className="font-mono">{rfq.reference_id}</span></div>
-        <div className="mb-2">
-          <span className="font-medium">Current Bid Close Time: </span>
-          {formatDateTime(rfq.bid_close_time)}
-          <span className="ml-2"><CountdownTimer endTime={rfq.bid_close_time} /></span>
-        </div>
-        <div className="mb-2">
-          <span className="font-medium">Forced Close Time: </span>{formatDateTime(rfq.forced_close_time)}
-        </div>
-        <div className="mb-2">
-          <span className="font-medium">Auction Config:</span>
-          <span className="ml-2">Trigger Window: <span className="font-mono">{rfq.trigger_window_minutes} min</span></span>
-          <span className="ml-2">Extension Duration: <span className="font-mono">{rfq.extension_duration_minutes} min</span></span>
-          <span className="ml-2">Trigger Type: <span className="font-mono">{rfq.extension_trigger_type}</span></span>
-        </div>
-      </div>
+    <div style={{ backgroundColor: "#f1f5f9", minHeight: "100vh", padding: "3rem 1rem" }}>
+      <div style={{ maxWidth: "80rem", margin: "0 auto" }}>
+        {/* Back Button */}
+        <button
+          onClick={() => navigate("/")}
+          style={{ marginBottom: "1.5rem", display: "flex", alignItems: "center", gap: "0.5rem", color: "#2563eb", fontWeight: "500", cursor: "pointer", border: "none", backgroundColor: "transparent" }}
+        >
+          <svg style={{ width: "1.25rem", height: "1.25rem" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+          <span>← Back to Auctions</span>
+        </button>
 
-      {/* Section 2: Bid Leaderboard Table */}
-      <div className="mb-8">
-        <h3 className="text-lg font-semibold mb-2">Bid Leaderboard</h3>
-        <BidTable bids={rfq.bids} />
-      </div>
+        {/* Header Section */}
+        <div style={{ backgroundColor: "#ffffff", borderRadius: "0.75rem", boxShadow: "0 10px 25px rgba(0,0,0,0.1)", overflow: "hidden", marginBottom: "2rem" }}>
+          <div style={{ height: "8px", background: "linear-gradient(to right, #2563eb, #06b6d4, #2563eb)" }}></div>
+          <div style={{ padding: "2rem" }}>
+            <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", marginBottom: "1.5rem", gap: "1rem" }}>
+              <div>
+                <h1 style={{ fontSize: "2.25rem", fontWeight: "bold", color: "#1e3a5f", marginBottom: "0.5rem" }}>{rfq.name}</h1>
+                <p style={{ color: "#64748b", fontFamily: "monospace" }}>📌 Reference: {rfq.reference_id}</p>
+              </div>
+              {statusBadge(rfq.status)}
+            </div>
 
-      {/* Section 3: Activity Log */}
-      <div className="mb-8">
-        <h3 className="text-lg font-semibold mb-2">Activity Log</h3>
-        <ActivityLog events={rfq.auction_events} />
-      </div>
+            {/* Key Info Grid */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1.5rem", marginTop: "2rem", paddingTop: "2rem", borderTop: "1px solid #e5e7eb" }}>
+              {/* Lowest Bid */}
+              <div style={{ textAlign: "center" }}>
+                <p style={{ fontSize: "0.875rem", fontWeight: "600", color: "#64748b", marginBottom: "0.5rem" }}>🏆 Lowest Bid</p>
+                {rfq.bids && rfq.bids.length > 0 ? (
+                  <p style={{ fontSize: "1.875rem", fontWeight: "bold", color: "#16a34a" }}>£{rfq.bids[0]?.total_charges?.toFixed(2) || "N/A"}</p>
+                ) : (
+                  <p style={{ fontSize: "1.25rem", fontWeight: "bold", color: "#9ca3af" }}>No bids yet</p>
+                )}
+              </div>
 
-      {/* Submit Bid Form */}
-      {rfq.status === "active" && (
-        <div className="mt-8">
-          <h3 className="text-lg font-semibold mb-2">Submit Bid</h3>
-          <form onSubmit={handleBidSubmit} className="space-y-4">
-            <div>
-              <label className="block font-medium mb-1">Carrier Name</label>
-              <input
-                type="text"
-                name="carrier_name"
-                value={bidForm.carrier_name}
-                onChange={handleBidChange}
-                className="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-400"
-                required
-              />
+              {/* Bid Count */}
+              <div style={{ textAlign: "center" }}>
+                <p style={{ fontSize: "0.875rem", fontWeight: "600", color: "#64748b", marginBottom: "0.5rem" }}>📈 Total Bids</p>
+                <p style={{ fontSize: "1.875rem", fontWeight: "bold", color: "#2563eb" }}>{rfq.bids?.length || 0}</p>
+              </div>
+
+              {/* Time Left */}
+              <div style={{ textAlign: "center" }}>
+                <p style={{ fontSize: "0.875rem", fontWeight: "600", color: "#64748b", marginBottom: "0.5rem" }}>⏱️ Time Remaining</p>
+                <CountdownTimer endTime={rfq.bid_close_time} />
+              </div>
             </div>
-            <div>
-              <label className="block font-medium mb-1">Freight Charges</label>
-              <input
-                type="number"
-                name="freight_charges"
-                value={bidForm.freight_charges}
-                onChange={handleBidChange}
-                className="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-400"
-                required
-                min="0"
-                step="0.01"
-              />
-            </div>
-            <div>
-              <label className="block font-medium mb-1">Origin Charges</label>
-              <input
-                type="number"
-                name="origin_charges"
-                value={bidForm.origin_charges}
-                onChange={handleBidChange}
-                className="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-400"
-                required
-                min="0"
-                step="0.01"
-              />
-            </div>
-            <div>
-              <label className="block font-medium mb-1">Destination Charges</label>
-              <input
-                type="number"
-                name="destination_charges"
-                value={bidForm.destination_charges}
-                onChange={handleBidChange}
-                className="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-400"
-                required
-                min="0"
-                step="0.01"
-              />
-            </div>
-            <div>
-              <label className="block font-medium mb-1">Transit Time (days)</label>
-              <input
-                type="number"
-                name="transit_time"
-                value={bidForm.transit_time}
-                onChange={handleBidChange}
-                className="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-400"
-                required
-                min="1"
-              />
-            </div>
-            <div>
-              <label className="block font-medium mb-1">Quote Validity</label>
-              <input
-                type="date"
-                name="quote_validity"
-                value={bidForm.quote_validity}
-                onChange={handleBidChange}
-                className="w-full border rounded px-3 py-2 focus:outline-none focus:ring focus:border-blue-400"
-                required
-              />
-            </div>
-            {bidError && <p className="text-red-500 text-sm mt-2 text-center">{bidError}</p>}
-            {bidSuccess && <p className="text-green-600 text-sm mt-2 text-center">{bidSuccess}</p>}
-            <button
-              type="submit"
-              className="w-full bg-blue-600 text-white font-semibold py-2 rounded hover:bg-blue-700 transition"
-              disabled={submitting}
-            >
-              {submitting ? "Submitting..." : "Submit Bid"}
-            </button>
-          </form>
+          </div>
         </div>
-      )}
+
+        {/* Config & Timeline Card */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "1.5rem", marginBottom: "2rem" }}>
+          {/* Configuration */}
+          <div style={{ backgroundColor: "#ffffff", borderRadius: "0.75rem", boxShadow: "0 10px 15px rgba(0,0,0,0.1)", padding: "1.5rem", borderLeft: "4px solid #7c3aed" }}>
+            <h3 style={{ fontSize: "1.125rem", fontWeight: "bold", color: "#1e3a5f", marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <span>⚙️ Auction Configuration</span>
+            </h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "0.5rem", borderBottom: "1px solid #e5e7eb" }}>
+                <span style={{ color: "#64748b", fontWeight: "500" }}>Trigger Window</span>
+                <span style={{ fontFamily: "monospace", fontWeight: "bold", color: "#1f2937" }}>{rfq.trigger_window_minutes} minutes</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "0.5rem", borderBottom: "1px solid #e5e7eb" }}>
+                <span style={{ color: "#64748b", fontWeight: "500" }}>Extension Duration</span>
+                <span style={{ fontFamily: "monospace", fontWeight: "bold", color: "#1f2937" }}>{rfq.extension_duration_minutes} minutes</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ color: "#64748b", fontWeight: "500" }}>Trigger Type</span>
+                <span style={{ fontFamily: "monospace", fontWeight: "bold", color: "#2563eb", backgroundColor: "#dbeafe", padding: "0.25rem 0.5rem", borderRadius: "0.25rem" }}>{rfq.extension_trigger_type}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Timeline */}
+          <div style={{ backgroundColor: "#ffffff", borderRadius: "0.75rem", boxShadow: "0 10px 15px rgba(0,0,0,0.1)", padding: "1.5rem", borderLeft: "4px solid #2563eb" }}>
+            <h3 style={{ fontSize: "1.125rem", fontWeight: "bold", color: "#1e3a5f", marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <span>📅 Timeline</span>
+            </h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+              <div>
+                <p style={{ fontSize: "0.75rem", fontWeight: "600", color: "#6b7280", marginBottom: "0.25rem" }}>Bid Start</p>
+                <p style={{ fontFamily: "monospace", color: "#1f2937" }}>{formatDateTime(rfq.bid_start_time)}</p>
+              </div>
+              <div>
+                <p style={{ fontSize: "0.75rem", fontWeight: "600", color: "#6b7280", marginBottom: "0.25rem" }}>Bid Close</p>
+                <p style={{ fontFamily: "monospace", color: "#1f2937" }}>{formatDateTime(rfq.bid_close_time)}</p>
+              </div>
+              <div>
+                <p style={{ fontSize: "0.75rem", fontWeight: "600", color: "#6b7280", marginBottom: "0.25rem" }}>Force Close</p>
+                <p style={{ fontFamily: "monospace", color: "#dc2626", fontWeight: "bold" }}>{formatDateTime(rfq.forced_close_time)}</p>
+              </div>
+              <div>
+                <p style={{ fontSize: "0.75rem", fontWeight: "600", color: "#6b7280", marginBottom: "0.25rem" }}>Pickup Date</p>
+                <p style={{ fontFamily: "monospace", color: "#1f2937" }}>{rfq.pickup_date}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Bids Section */}
+        <div style={{ backgroundColor: "#ffffff", borderRadius: "0.75rem", boxShadow: "0 10px 25px rgba(0,0,0,0.1)", overflow: "hidden", marginBottom: "2rem" }}>
+          <div style={{ height: "4px", background: "linear-gradient(to right, #16a34a, #10b981)" }}></div>
+          <div style={{ padding: "2rem" }}>
+            <h2 style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#1e3a5f", marginBottom: "1.5rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <span>💰 Bid Leaderboard</span>
+            </h2>
+            <BidTable bids={rfq.bids} />
+          </div>
+        </div>
+
+        {/* Activity Log Section */}
+        <div style={{ backgroundColor: "#ffffff", borderRadius: "0.75rem", boxShadow: "0 10px 25px rgba(0,0,0,0.1)", overflow: "hidden", marginBottom: "2rem" }}>
+          <div style={{ height: "4px", background: "linear-gradient(to right, #f97316, #dc2626)" }}></div>
+          <div style={{ padding: "2rem" }}>
+            <h2 style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#1e3a5f", marginBottom: "1.5rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <span>📜 Activity Log</span>
+            </h2>
+            <ActivityLog events={rfq.auction_events} />
+          </div>
+        </div>
+
+        {/* Submit Bid Section */}
+        {rfq.status === "active" && (
+          <div style={{ backgroundColor: "#ffffff", borderRadius: "0.75rem", boxShadow: "0 10px 25px rgba(0,0,0,0.1)", overflow: "hidden" }}>
+            <div style={{ height: "4px", background: "linear-gradient(to right, #06b6d4, #2563eb)" }}></div>
+            <div style={{ padding: "2rem" }}>
+              <h2 style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#1e3a5f", marginBottom: "1.5rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <span>💸 Submit New Bid</span>
+              </h2>
+
+              <form onSubmit={handleBidSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "1rem" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", color: "#374151", marginBottom: "0.5rem" }}>Carrier Name *</label>
+                    <input
+                      type="text"
+                      name="carrier_name"
+                      value={bidForm.carrier_name}
+                      onChange={handleBidChange}
+                      style={{
+                        width: "100%",
+                        padding: "0.625rem 1rem",
+                        border: "2px solid #e5e7eb",
+                        borderRadius: "0.5rem",
+                        fontSize: "1rem",
+                        color: "#1f2937",
+                      }}
+                      onFocus={(e) => e.target.style.borderColor = "#2563eb"}
+                      onBlur={(e) => e.target.style.borderColor = "#e5e7eb"}
+                      placeholder="Enter carrier name"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", color: "#374151", marginBottom: "0.5rem" }}>Transit Time (days) *</label>
+                    <input
+                      type="number"
+                      name="transit_time"
+                      value={bidForm.transit_time}
+                      onChange={handleBidChange}
+                      style={{
+                        width: "100%",
+                        padding: "0.625rem 1rem",
+                        border: "2px solid #e5e7eb",
+                        borderRadius: "0.5rem",
+                        fontSize: "1rem",
+                        color: "#1f2937",
+                      }}
+                      onFocus={(e) => e.target.style.borderColor = "#2563eb"}
+                      onBlur={(e) => e.target.style.borderColor = "#e5e7eb"}
+                      required
+                      min="1"
+                      placeholder="Days"
+                    />
+                  </div>
+                </div>
+
+                <div style={{ borderBottom: "2px solid #e2e8f0", paddingBottom: "1rem" }}>
+                  <h3 style={{ fontWeight: "600", color: "#1f2937", marginBottom: "1rem" }}>💷 Charges Breakdown</h3>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "1rem" }}>
+                    <div>
+                      <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", color: "#374151", marginBottom: "0.5rem" }}>Freight Charges (£) *</label>
+                      <input
+                        type="number"
+                        name="freight_charges"
+                        value={bidForm.freight_charges}
+                        onChange={handleBidChange}
+                        style={{
+                          width: "100%",
+                          padding: "0.625rem 1rem",
+                          border: "2px solid #e5e7eb",
+                          borderRadius: "0.5rem",
+                          fontSize: "1rem",
+                          color: "#1f2937",
+                        }}
+                        onFocus={(e) => e.target.style.borderColor = "#2563eb"}
+                        onBlur={(e) => e.target.style.borderColor = "#e5e7eb"}
+                        required
+                        min="0"
+                        step="0.01"
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", color: "#374151", marginBottom: "0.5rem" }}>Origin Charges (£) *</label>
+                      <input
+                        type="number"
+                        name="origin_charges"
+                        value={bidForm.origin_charges}
+                        onChange={handleBidChange}
+                        style={{
+                          width: "100%",
+                          padding: "0.625rem 1rem",
+                          border: "2px solid #e5e7eb",
+                          borderRadius: "0.5rem",
+                          fontSize: "1rem",
+                          color: "#1f2937",
+                        }}
+                        onFocus={(e) => e.target.style.borderColor = "#2563eb"}
+                        onBlur={(e) => e.target.style.borderColor = "#e5e7eb"}
+                        required
+                        min="0"
+                        step="0.01"
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", color: "#374151", marginBottom: "0.5rem" }}>Destination Charges (£) *</label>
+                      <input
+                        type="number"
+                        name="destination_charges"
+                        value={bidForm.destination_charges}
+                        onChange={handleBidChange}
+                        style={{
+                          width: "100%",
+                          padding: "0.625rem 1rem",
+                          border: "2px solid #e5e7eb",
+                          borderRadius: "0.5rem",
+                          fontSize: "1rem",
+                          color: "#1f2937",
+                        }}
+                        onFocus={(e) => e.target.style.borderColor = "#2563eb"}
+                        onBlur={(e) => e.target.style.borderColor = "#e5e7eb"}
+                        required
+                        min="0"
+                        step="0.01"
+                        placeholder="0.00"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", color: "#374151", marginBottom: "0.5rem" }}>Quote Validity *</label>
+                  <input
+                    type="date"
+                    name="quote_validity"
+                    value={bidForm.quote_validity}
+                    onChange={handleBidChange}
+                    style={{
+                      width: "100%",
+                      padding: "0.625rem 1rem",
+                      border: "2px solid #e5e7eb",
+                      borderRadius: "0.5rem",
+                      fontSize: "1rem",
+                      color: "#1f2937",
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = "#2563eb"}
+                    onBlur={(e) => e.target.style.borderColor = "#e5e7eb"}
+                    required
+                  />
+                </div>
+
+                {bidError && (
+                  <div style={{ backgroundColor: "#fee2e2", borderLeft: "4px solid #dc2626", padding: "1rem", borderRadius: "0.375rem" }}>
+                    <p style={{ color: "#991b1b", fontWeight: "500" }}>⚠️ {bidError}</p>
+                  </div>
+                )}
+
+                {bidSuccess && (
+                  <div style={{ backgroundColor: "#dcfce7", borderLeft: "4px solid #16a34a", padding: "1rem", borderRadius: "0.375rem" }}>
+                    <p style={{ color: "#166534", fontWeight: "500" }}>{bidSuccess}</p>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  style={{
+                    width: "100%",
+                    backgroundColor: "#16a34a",
+                    color: "white",
+                    fontWeight: "600",
+                    padding: "0.75rem",
+                    borderRadius: "0.5rem",
+                    border: "none",
+                    cursor: submitting ? "not-allowed" : "pointer",
+                    opacity: submitting ? 0.5 : 1,
+                    transition: "background-color 0.2s",
+                  }}
+                  onMouseEnter={(e) => e.target.style.backgroundColor = submitting ? "#16a34a" : "#15803d"}
+                  onMouseLeave={(e) => e.target.style.backgroundColor = "#16a34a"}
+                  disabled={submitting}
+                >
+                  {submitting ? "⏳ Submitting..." : "✅ Submit Bid"}
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

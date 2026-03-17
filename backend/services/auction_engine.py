@@ -1,6 +1,6 @@
 
 from datetime import datetime, timedelta
-from ..models import RFQ, Bid, AuctionEvent
+from models import RFQ, Bid, AuctionEvent
 
 class AuctionEngine:
     def process_bid_event(self, db, rfq_id, new_bid):
