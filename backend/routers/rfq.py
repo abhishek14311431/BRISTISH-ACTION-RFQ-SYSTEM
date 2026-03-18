@@ -62,16 +62,21 @@ class RFQDetailSchema(BaseModel):
     bids: List[BidOutSchema]
     auction_events: List[AuctionEventOutSchema]
 
-# 1. POST /rfq/ — Create a new RFQ
 @router.post("/", response_model=RFQDetailSchema)
 def create_rfq(rfq_data: RFQCreateRequest, db: Session = Depends(get_db)):
     try:
         print("Received:", rfq_data.dict())
 
+        # Check for duplicate Reference ID
+        existing = db.query(RFQ).filter(RFQ.reference_id == rfq_data.reference_id).first()
+        if existing:
+            raise HTTPException(status_code=400, detail=f"Reference ID '{rfq_data.reference_id}' already exists. Please use a unique ID.")
+
         if rfq_data.forced_close_time <= rfq_data.bid_close_time:
             raise HTTPException(status_code=400, detail="Forced close time must be after bid close time.")
         if rfq_data.bid_start_time >= rfq_data.bid_close_time:
             raise HTTPException(status_code=400, detail="Bid start time must be before bid close time.")
+        
         db_rfq = RFQ(
             name=rfq_data.name,
             reference_id=rfq_data.reference_id,
@@ -94,7 +99,11 @@ def create_rfq(rfq_data: RFQCreateRequest, db: Session = Depends(get_db)):
         raise
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed to create RFQ: {str(e)}")
+        # Improve error message for common issues
+        error_msg = str(e)
+        if "UNIQUE constraint failed" in error_msg:
+            raise HTTPException(status_code=400, detail="A duplicate unique value was found (likely Reference ID).")
+        raise HTTPException(status_code=500, detail=f"Failed to create RFQ: {error_msg}")
 
 # 2. GET /rfq/ — List all RFQs
 @router.get("/", response_model=List[RFQListItemSchema])
