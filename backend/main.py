@@ -11,10 +11,11 @@ app = FastAPI(title="British Auction RFQ System")
 # Enable CORS for all origins
 app.add_middleware(
     CORSMiddleware,
+    allow_origin_regex="https://.*\\.app\\.github\\.dev",
     allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization", "*"]
+    allow_methods=["*"],
+    allow_headers=["*"]
 )
 
 # Include routers
