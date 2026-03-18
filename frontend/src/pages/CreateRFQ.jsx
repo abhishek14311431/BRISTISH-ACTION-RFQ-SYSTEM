@@ -24,14 +24,27 @@ const CreateRFQ = () => {
   });
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
+  const [toast, setToast] = useState(null);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
   };
 
   const validate = () => {
     const err = {};
+    if (!form.name.trim()) err.name = "RFQ name is required.";
+    if (!form.reference_id.trim()) err.reference_id = "Reference ID is required.";
+    if (!form.bid_start_time) err.bid_start_time = "Bid start date/time is required.";
+    if (!form.bid_close_time) err.bid_close_time = "Bid close date/time is required.";
+    if (!form.forced_close_time) err.forced_close_time = "Forced close date/time is required.";
+    if (!form.pickup_date) err.pickup_date = "Pickup date is required.";
+    if (!form.trigger_window_minutes) err.trigger_window_minutes = "Trigger window is required.";
+    if (!form.extension_duration_minutes) err.extension_duration_minutes = "Extension duration is required.";
+
     if (form.forced_close_time && form.bid_close_time && form.forced_close_time <= form.bid_close_time) {
       err.forced_close_time = "Forced close time must be after bid close time.";
     }
@@ -53,12 +66,13 @@ const CreateRFQ = () => {
         bid_start_time: new Date(form.bid_start_time).toISOString(),
         bid_close_time: new Date(form.bid_close_time).toISOString(),
         forced_close_time: new Date(form.forced_close_time).toISOString(),
-        pickup_date: form.pickup_date,
+        pickup_date: new Date(form.pickup_date).toISOString(),
         trigger_window_minutes: Number(form.trigger_window_minutes),
         extension_duration_minutes: Number(form.extension_duration_minutes),
       };
       await createRFQ(payload);
-      navigate("/");
+      setToast({ type: "success", message: "RFQ created successfully." });
+      setTimeout(() => navigate("/"), 900);
     } catch (error) {
       const detail = error.response?.data?.detail;
       const submitMessage = Array.isArray(detail)
@@ -67,307 +81,118 @@ const CreateRFQ = () => {
           ? detail
           : "Failed to create RFQ.";
       setErrors({ submit: submitMessage });
+      setToast({ type: "error", message: submitMessage });
+      setTimeout(() => setToast(null), 3000);
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="w-full overflow-x-hidden" style={{ backgroundColor: "transparent", minHeight: "100vh", padding: "3rem 0" }}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" style={{ maxWidth: "80rem", margin: "0 auto" }}>
-        <div style={{ maxWidth: "56rem", margin: "0 auto" }}>
-        {/* Header */}
-        <div style={{ marginBottom: "2rem" }}>
-          <h1 style={{ fontSize: "2.25rem", fontWeight: "bold", color: "#1e3a5f", marginBottom: "0.5rem" }}>
-            📋 Create New RFQ
-          </h1>
-          <p style={{ color: "#64748b" }}>Set up and configure a new auction request for quotation</p>
+    <div className="w-full overflow-x-hidden page-enter">
+      {toast && (
+        <div className={`toast ${toast.type === "success" ? "toast-success" : "toast-error"}`}>
+          {toast.type === "success" ? "✅" : "❌"} {toast.message}
         </div>
+      )}
 
-        {/* Form Card */}
-        <div style={{ backgroundColor: "#ffffff", borderRadius: "0.75rem", boxShadow: "0 10px 25px rgba(0,0,0,0.1)", overflow: "hidden" }}>
-          <div style={{ height: "4px", backgroundColor: "#2563eb" }}></div>
-          
-          <form onSubmit={handleSubmit} style={{ padding: "2rem", display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-            {/* Basic Information */}
-            <div>
-              <h3 style={{ fontSize: "1.125rem", fontWeight: "600", color: "#1e3a5f", marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "2rem", height: "2rem", borderRadius: "50%", backgroundColor: "#dbeafe", color: "#2563eb", fontWeight: "bold" }}>1</span>
-                <span>Basic Information</span>
-              </h3>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "1rem" }}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-[650px] mx-auto glass-card p-6 md:p-8 card-enter">
+          <h1 className="text-white text-3xl font-extrabold">Create New RFQ</h1>
+          <p className="text-slate-300 mt-2">Set up a new request for quotation auction</p>
+
+          <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
+            <section className="space-y-4">
+              <h2 className="text-white font-semibold">Basic Info</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", color: "#374151", marginBottom: "0.5rem" }}>RFQ Name *</label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={form.name}
-                    onChange={handleChange}
-                    style={{
-                      width: "100%",
-                      padding: "0.625rem 1rem",
-                      border: "2px solid #e5e7eb",
-                      borderRadius: "0.5rem",
-                      fontSize: "1rem",
-                      color: "#1f2937",
-                    }}
-                    onFocus={(e) => e.target.style.borderColor = "#2563eb"}
-                    onBlur={(e) => e.target.style.borderColor = "#e5e7eb"}
-                    placeholder="e.g., Transportation Q1 2026"
-                    required
-                  />
+                  <label className="text-slate-100 text-sm font-medium">RFQ Name</label>
+                  <input className="glass-input mt-1" name="name" value={form.name} onChange={handleChange} placeholder="Enter RFQ name" />
+                  {errors.name && <p className="field-error">{errors.name}</p>}
                 </div>
                 <div>
-                  <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", color: "#374151", marginBottom: "0.5rem" }}>Reference ID *</label>
-                  <input
-                    type="text"
-                    name="reference_id"
-                    value={form.reference_id}
-                    onChange={handleChange}
-                    style={{
-                      width: "100%",
-                      padding: "0.625rem 1rem",
-                      border: "2px solid #e5e7eb",
-                      borderRadius: "0.5rem",
-                      fontSize: "1rem",
-                      color: "#1f2937",
-                    }}
-                    onFocus={(e) => e.target.style.borderColor = "#2563eb"}
-                    onBlur={(e) => e.target.style.borderColor = "#e5e7eb"}
-                    placeholder="e.g., RFQ-2026-001"
-                    required
-                  />
+                  <label className="text-slate-100 text-sm font-medium">Reference ID</label>
+                  <input className="glass-input mt-1" name="reference_id" value={form.reference_id} onChange={handleChange} placeholder="RFQ-0001" />
+                  {errors.reference_id && <p className="field-error">{errors.reference_id}</p>}
                 </div>
               </div>
+            </section>
+
+            <div className="gradient-divider">
+              <span>Auction Config</span>
             </div>
 
-            {/* Divider */}
-            <div style={{ borderBottom: "2px solid #e2e8f0" }}></div>
-
-            {/* Timeline */}
-            <div>
-              <h3 style={{ fontSize: "1.125rem", fontWeight: "600", color: "#1e3a5f", marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "2rem", height: "2rem", borderRadius: "50%", backgroundColor: "#dcfce7", color: "#16a34a", fontWeight: "bold" }}>2</span>
-                <span>📅 Timeline</span>
-              </h3>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem" }}>
+            <section className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: "600", color: "#374151", marginBottom: "0.5rem", lineHeight: 1.3 }}>Bid Start Date & Time *</label>
-                  <input
-                    type="datetime-local"
-                    name="bid_start_time"
-                    value={form.bid_start_time}
-                    onChange={handleChange}
-                    style={{
-                      width: "100%",
-                      padding: "0.625rem 1rem",
-                      border: "2px solid #e5e7eb",
-                      borderRadius: "0.5rem",
-                      fontSize: "1rem",
-                      color: "#1f2937",
-                    }}
-                    onFocus={(e) => e.target.style.borderColor = "#2563eb"}
-                    onBlur={(e) => e.target.style.borderColor = "#e5e7eb"}
-                    required
-                  />
-                  {errors.bid_start_time && <p style={{ color: "#dc2626", fontSize: "0.875rem", marginTop: "0.25rem" }}>⚠️ {errors.bid_start_time}</p>}
+                  <label className="text-slate-100 text-sm font-medium">Bid Start</label>
+                  <input className="glass-input mt-1" type="datetime-local" name="bid_start_time" value={form.bid_start_time} onChange={handleChange} />
+                  {errors.bid_start_time && <p className="field-error">{errors.bid_start_time}</p>}
                 </div>
                 <div>
-                  <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: "600", color: "#374151", marginBottom: "0.5rem", lineHeight: 1.3 }}>Bid Close Date & Time *</label>
-                  <input
-                    type="datetime-local"
-                    name="bid_close_time"
-                    value={form.bid_close_time}
-                    onChange={handleChange}
-                    style={{
-                      width: "100%",
-                      padding: "0.625rem 1rem",
-                      border: "2px solid #e5e7eb",
-                      borderRadius: "0.5rem",
-                      fontSize: "1rem",
-                      color: "#1f2937",
-                    }}
-                    onFocus={(e) => e.target.style.borderColor = "#2563eb"}
-                    onBlur={(e) => e.target.style.borderColor = "#e5e7eb"}
-                    required
-                  />
+                  <label className="text-slate-100 text-sm font-medium">Bid Close</label>
+                  <input className="glass-input mt-1" type="datetime-local" name="bid_close_time" value={form.bid_close_time} onChange={handleChange} />
+                  {errors.bid_close_time && <p className="field-error">{errors.bid_close_time}</p>}
                 </div>
                 <div>
-                  <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: "600", color: "#374151", marginBottom: "0.5rem", lineHeight: 1.3 }}>Forced Close Date & Time *</label>
-                  <input
-                    type="datetime-local"
-                    name="forced_close_time"
-                    value={form.forced_close_time}
-                    onChange={handleChange}
-                    style={{
-                      width: "100%",
-                      padding: "0.625rem 1rem",
-                      border: "2px solid #e5e7eb",
-                      borderRadius: "0.5rem",
-                      fontSize: "1rem",
-                      color: "#1f2937",
-                    }}
-                    onFocus={(e) => e.target.style.borderColor = "#2563eb"}
-                    onBlur={(e) => e.target.style.borderColor = "#e5e7eb"}
-                    required
-                  />
-                  {errors.forced_close_time && <p style={{ color: "#dc2626", fontSize: "0.875rem", marginTop: "0.25rem" }}>⚠️ {errors.forced_close_time}</p>}
+                  <label className="text-slate-100 text-sm font-medium">Forced Close</label>
+                  <input className="glass-input mt-1" type="datetime-local" name="forced_close_time" value={form.forced_close_time} onChange={handleChange} />
+                  {errors.forced_close_time && <p className="field-error">{errors.forced_close_time}</p>}
                 </div>
                 <div>
-                  <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", color: "#374151", marginBottom: "0.5rem" }}>Pickup / Service Date *</label>
-                  <input
-                    type="date"
-                    name="pickup_date"
-                    value={form.pickup_date}
-                    onChange={handleChange}
-                    style={{
-                      width: "100%",
-                      padding: "0.625rem 1rem",
-                      border: "2px solid #e5e7eb",
-                      borderRadius: "0.5rem",
-                      fontSize: "1rem",
-                      color: "#1f2937",
-                    }}
-                    onFocus={(e) => e.target.style.borderColor = "#2563eb"}
-                    onBlur={(e) => e.target.style.borderColor = "#e5e7eb"}
-                    required
-                  />
+                  <label className="text-slate-100 text-sm font-medium">Pickup Date</label>
+                  <input className="glass-input mt-1" type="date" name="pickup_date" value={form.pickup_date} onChange={handleChange} />
+                  {errors.pickup_date && <p className="field-error">{errors.pickup_date}</p>}
                 </div>
               </div>
-            </div>
 
-            {/* Divider */}
-            <div style={{ borderBottom: "2px solid #e2e8f0" }}></div>
-
-            {/* Extension Settings */}
-            <div>
-              <h3 style={{ fontSize: "1.125rem", fontWeight: "600", color: "#1e3a5f", marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "2rem", height: "2rem", borderRadius: "50%", backgroundColor: "#f3e8ff", color: "#7c3aed", fontWeight: "bold" }}>3</span>
-                <span>⚙️ Extension Settings</span>
-              </h3>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem" }}>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", color: "#374151", marginBottom: "0.5rem" }}>Trigger Window (min) *</label>
-                  <input
-                    type="number"
-                    name="trigger_window_minutes"
-                    value={form.trigger_window_minutes}
-                    onChange={handleChange}
-                    style={{
-                      width: "100%",
-                      padding: "0.625rem 1rem",
-                      border: "2px solid #e5e7eb",
-                      borderRadius: "0.5rem",
-                      fontSize: "1rem",
-                      color: "#1f2937",
-                    }}
-                    onFocus={(e) => e.target.style.borderColor = "#2563eb"}
-                    onBlur={(e) => e.target.style.borderColor = "#e5e7eb"}
-                    required
-                    min="1"
-                    placeholder="10"
-                  />
+                  <label className="text-slate-100 text-sm font-medium">Trigger Window (min)</label>
+                  <input className="glass-input mt-1" type="number" min="1" name="trigger_window_minutes" value={form.trigger_window_minutes} onChange={handleChange} />
+                  {errors.trigger_window_minutes && <p className="field-error">{errors.trigger_window_minutes}</p>}
                 </div>
                 <div>
-                  <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", color: "#374151", marginBottom: "0.5rem" }}>Extension Duration (min) *</label>
-                  <input
-                    type="number"
-                    name="extension_duration_minutes"
-                    value={form.extension_duration_minutes}
-                    onChange={handleChange}
-                    style={{
-                      width: "100%",
-                      padding: "0.625rem 1rem",
-                      border: "2px solid #e5e7eb",
-                      borderRadius: "0.5rem",
-                      fontSize: "1rem",
-                      color: "#1f2937",
-                    }}
-                    onFocus={(e) => e.target.style.borderColor = "#2563eb"}
-                    onBlur={(e) => e.target.style.borderColor = "#e5e7eb"}
-                    required
-                    min="1"
-                    placeholder="5"
-                  />
+                  <label className="text-slate-100 text-sm font-medium">Extension Duration (min)</label>
+                  <input className="glass-input mt-1" type="number" min="1" name="extension_duration_minutes" value={form.extension_duration_minutes} onChange={handleChange} />
+                  {errors.extension_duration_minutes && <p className="field-error">{errors.extension_duration_minutes}</p>}
                 </div>
                 <div>
-                  <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", color: "#374151", marginBottom: "0.5rem" }}>Trigger Type *</label>
-                  <select
-                    name="extension_trigger_type"
-                    value={form.extension_trigger_type}
-                    onChange={handleChange}
-                    style={{
-                      width: "100%",
-                      padding: "0.625rem 1rem",
-                      border: "2px solid #e5e7eb",
-                      borderRadius: "0.5rem",
-                      fontSize: "1rem",
-                      color: "#1f2937",
-                      backgroundColor: "#ffffff",
-                    }}
-                    onFocus={(e) => e.target.style.borderColor = "#2563eb"}
-                    onBlur={(e) => e.target.style.borderColor = "#e5e7eb"}
-                    required
-                  >
+                  <label className="text-slate-100 text-sm font-medium">Trigger Type</label>
+                  <select className="glass-input mt-1" name="extension_trigger_type" value={form.extension_trigger_type} onChange={handleChange}>
                     {triggerOptions.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      <option key={opt.value} value={opt.value} className="text-black">
+                        {opt.label}
+                      </option>
                     ))}
                   </select>
                 </div>
               </div>
-            </div>
+            </section>
 
-            {/* Error Message */}
-            {errors.submit && (
-              <div style={{ backgroundColor: "#fee2e2", borderLeft: "4px solid #dc2626", padding: "1rem", borderRadius: "0.375rem" }}>
-                <p style={{ color: "#b91c1c", fontWeight: "500" }}>⚠️ {errors.submit}</p>
-              </div>
-            )}
+            {errors.submit && <p className="field-error">{errors.submit}</p>}
 
-            {/* Buttons */}
-            <div style={{ display: "flex", gap: "1rem", paddingTop: "1rem", flexWrap: "wrap" }}>
-              <button
-                type="submit"
-                style={{
-                  flex: 1,
-                  backgroundColor: "#16a34a",
-                  color: "white",
-                  fontWeight: "600",
-                  padding: "0.75rem",
-                  borderRadius: "0.5rem",
-                  border: "none",
-                  cursor: submitting ? "not-allowed" : "pointer",
-                  opacity: submitting ? 0.5 : 1,
-                  transition: "background-color 0.2s",
-                }}
-                onMouseEnter={(e) => e.target.style.backgroundColor = submitting ? "#16a34a" : "#15803d"}
-                onMouseLeave={(e) => e.target.style.backgroundColor = "#16a34a"}
-                disabled={submitting}
-              >
-                {submitting ? "⏳ Creating..." : "✅ Create RFQ"}
+            <div className="space-y-3 pt-1">
+              <button type="submit" className="w-full gradient-btn rounded-xl py-4 font-bold text-white flex items-center justify-center gap-2" disabled={submitting}>
+                {submitting ? (
+                  <>
+                    <span className="spinner"></span>
+                    Creating RFQ...
+                  </>
+                ) : (
+                  "Create RFQ"
+                )}
               </button>
+
               <button
                 type="button"
-                style={{
-                  flex: 1,
-                  backgroundColor: "#f3f4f6",
-                  color: "#374151",
-                  fontWeight: "600",
-                  padding: "0.75rem",
-                  borderRadius: "0.5rem",
-                  border: "none",
-                  cursor: "pointer",
-                  transition: "background-color 0.2s",
-                }}
-                onMouseEnter={(e) => e.target.style.backgroundColor = "#e5e7eb"}
-                onMouseLeave={(e) => e.target.style.backgroundColor = "#f3f4f6"}
+                className="w-full ghost-btn rounded-xl py-3 font-semibold"
                 onClick={() => navigate("/")}
               >
-                ❌ Cancel
+                Cancel
               </button>
             </div>
           </form>
-        </div>
         </div>
       </div>
     </div>

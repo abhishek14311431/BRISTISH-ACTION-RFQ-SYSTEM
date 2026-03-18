@@ -1,57 +1,99 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getRFQDetail, submitBid } from "../api/axios";
-import BidTable from "../components/BidTable";
-import ActivityLog from "../components/ActivityLog";
-
-const statusBadge = (status) => {
-  const badges = {
-    active: { bg: "#dcfce7", text: "#166534", icon: "🟢" },
-    force_closed: { bg: "#fee2e2", text: "#8e1919", icon: "🔴" },
-    closed: { bg: "#f3f4f6", text: "#374151", icon: "⭕" },
-  };
-  const badge = badges[status] || badges.closed;
-  const label = status === "active" ? "Active" : status === "force_closed" ? "Force Closed" : "Closed";
-  return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: "0.25rem", padding: "0.5rem 1rem", borderRadius: "9999px", fontSize: "0.875rem", fontWeight: "600", backgroundColor: badge.bg, color: badge.text }}>
-      <span style={{ fontSize: "1.125rem" }}>{badge.icon}</span>
-      <span>{label}</span>
-    </span>
-  );
-};
-
+ 
 const formatDateTime = (dt) => {
   if (!dt) return "";
-  const d = new Date(dt);
-  return d.toLocaleString("en-GB", {
-    day: "2-digit",
+  return new Date(dt).toLocaleString("en-US", {
     month: "short",
+    day: "2-digit",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-    hour12: false,
+    hour12: true,
   });
 };
 
-const CountdownTimer = ({ endTime }) => {
-  const [timeLeft, setTimeLeft] = useState("");
+const CountUpNumber = ({ value }) => {
+  const [display, setDisplay] = useState(0);
+
   useEffect(() => {
+    let animationFrame;
+    const start = performance.now();
+    const duration = 500;
+
+    const tick = (now) => {
+      const progress = Math.min((now - start) / duration, 1);
+      setDisplay(value * progress);
+      if (progress < 1) {
+        animationFrame = requestAnimationFrame(tick);
+      }
+    };
+
+    animationFrame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(animationFrame);
+  }, [value]);
+
+  return (
+    <span className="lowest-bid">£{display.toFixed(2)}</span>
+  );
+};
+
+const StatusBadge = ({ status }) => {
+  if (status === "active") {
+    return (
+      <span className="status-pill status-active">
+        <span className="active-dot"></span>
+        Active
+      </span>
+    );
+  }
+
+  if (status === "force_closed") {
+    return <span className="status-pill status-force">Force Closed</span>;
+  }
+
+  return <span className="status-pill status-closed">Closed</span>;
+};
+
+const CountdownTimer = ({ endTime }) => {
+  const [secondsLeft, setSecondsLeft] = useState(0);
+
+  useEffect(() => {
+    const endTs = new Date(endTime).getTime();
+
     const interval = setInterval(() => {
-      const now = new Date();
-      const end = new Date(endTime);
-      const diff = Math.max(0, end - now);
-      const hours = String(Math.floor(diff / 3600000)).padStart(2, "0");
-      const minutes = String(Math.floor((diff % 3600000) / 60000)).padStart(2, "0");
-      const seconds = String(Math.floor((diff % 60000) / 1000)).padStart(2, "0");
-      setTimeLeft(`${hours}:${minutes}:${seconds}`);
+      const diff = Math.max(0, Math.floor((endTs - Date.now()) / 1000));
+      setSecondsLeft(diff);
     }, 1000);
+
     return () => clearInterval(interval);
   }, [endTime]);
+
+  const hours = String(Math.floor(secondsLeft / 3600)).padStart(2, "0");
+  const minutes = String(Math.floor((secondsLeft % 3600) / 60)).padStart(2, "0");
+  const seconds = String(secondsLeft % 60).padStart(2, "0");
+  const warning = secondsLeft > 0 && secondsLeft < 300;
+
   return (
-    <span style={{ fontFamily: "monospace", fontSize: "1.5rem", fontWeight: "bold", color: "#2563eb" }}>
-      {timeLeft}
+    <span className={warning ? "warning-countdown text-5xl md:text-6xl font-extrabold tracking-widest" : "text-white text-5xl md:text-6xl font-extrabold tracking-widest"}>
+      {hours}:{minutes}:{seconds}
     </span>
   );
+};
+
+const getRankClass = (rank) => {
+  if (rank === 1) return "rank-l1";
+  if (rank === 2) return "rank-l2";
+  if (rank === 3) return "rank-l3";
+  return "rank-other";
+};
+
+const getRankLabel = (rank) => {
+  if (rank === 1) return "🥇 L1";
+  if (rank === 2) return "🥈 L2";
+  if (rank === 3) return "🥉 L3";
+  return `#${rank}`;
 };
 
 const AuctionDetail = () => {
@@ -70,6 +112,7 @@ const AuctionDetail = () => {
   const [bidError, setBidError] = useState("");
   const [bidSuccess, setBidSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [toast, setToast] = useState(null);
 
   const fetchDetail = async () => {
     setLoading(true);
@@ -99,6 +142,7 @@ const AuctionDetail = () => {
     setBidError("");
     setBidSuccess("");
     setSubmitting(true);
+
     try {
       const payload = {
         ...bidForm,
@@ -109,7 +153,9 @@ const AuctionDetail = () => {
         quote_validity: bidForm.quote_validity,
       };
       await submitBid(id, payload);
-      setBidSuccess("✅ Bid submitted successfully!");
+      setBidSuccess("Bid submitted successfully!");
+      setToast({ type: "success", message: "Bid submitted successfully." });
+      setTimeout(() => setToast(null), 3000);
       setBidForm({
         carrier_name: "",
         freight_charges: "",
@@ -120,7 +166,10 @@ const AuctionDetail = () => {
       });
       fetchDetail();
     } catch (error) {
-      setBidError(error.response?.data?.detail || "Failed to submit bid.");
+      const message = error.response?.data?.detail || "Failed to submit bid.";
+      setBidError(message);
+      setToast({ type: "error", message });
+      setTimeout(() => setToast(null), 3000);
     } finally {
       setSubmitting(false);
     }
@@ -128,10 +177,12 @@ const AuctionDetail = () => {
 
   if (loading) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ textAlign: "center" }}>
-          <svg className="animate-spin h-12 w-12 text-blue-600 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" style={{ animation: "spin 1s linear infinite", margin: "1rem auto" }}><circle className="opacity-25" cx="12" cy="12" r="10" stroke="#2563eb" strokeWidth="4"></circle><path className="opacity-75" fill="#2563eb" d="M4 12a8 8 0 018-8v8z"></path></svg>
-          <p style={{ color: "#6b7280", fontWeight: "500" }}>⏳ Loading auction details...</p>
+      <div className="w-full overflow-x-hidden page-enter">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="glass-card p-12 text-center">
+            <div className="spinner mx-auto"></div>
+            <p className="mt-4 text-slate-200">Loading auction details...</p>
+          </div>
         </div>
       </div>
     );
@@ -139,326 +190,202 @@ const AuctionDetail = () => {
 
   if (!rfq) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ textAlign: "center" }}>
-          <svg style={{ width: "4rem", height: "4rem", color: "#dc2626", margin: "0 auto 1rem auto" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4m0 4v.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-          <h2 style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#1f2937", marginBottom: "0.5rem" }}>❌ RFQ Not Found</h2>
-          <button onClick={() => navigate("/")} style={{ color: "#2563eb", fontWeight: "500", cursor: "pointer" }}>← Back to Auctions</button>
+      <div className="w-full overflow-x-hidden page-enter">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="glass-card p-12 text-center text-slate-200">
+            <div className="text-5xl">❌</div>
+            <h2 className="text-2xl font-bold mt-3 text-white">RFQ Not Found</h2>
+            <button onClick={() => navigate("/")} className="mt-3 text-slate-200 hover:underline">← Back to Auctions</button>
+          </div>
         </div>
       </div>
     );
   }
 
+  const events = [...(rfq.auction_events || [])].sort(
+    (a, b) => new Date(b.triggered_at).getTime() - new Date(a.triggered_at).getTime()
+  );
+
   return (
-    <div className="w-full overflow-x-hidden" style={{ backgroundColor: "transparent", minHeight: "100vh", padding: "3rem 0" }}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" style={{ maxWidth: "80rem", margin: "0 auto" }}>
-        {/* Back Button */}
-        <button
-          onClick={() => navigate("/")}
-          style={{ marginBottom: "1.5rem", display: "flex", alignItems: "center", gap: "0.5rem", color: "#2563eb", fontWeight: "500", cursor: "pointer", border: "none", backgroundColor: "transparent" }}
-        >
-          <svg style={{ width: "1.25rem", height: "1.25rem" }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-          <span>← Back to Auctions</span>
-        </button>
+    <div className="w-full overflow-x-hidden page-enter">
+      {toast && <div className={`toast ${toast.type === "success" ? "toast-success" : "toast-error"}`}>{toast.type === "success" ? "✅" : "❌"} {toast.message}</div>}
 
-        {/* Header Section */}
-        <div style={{ backgroundColor: "#ffffff", borderRadius: "0.75rem", boxShadow: "0 10px 25px rgba(0,0,0,0.1)", overflow: "hidden", marginBottom: "2rem" }}>
-          <div style={{ height: "8px", background: "linear-gradient(to right, #2563eb, #06b6d4, #2563eb)" }}></div>
-          <div style={{ padding: "2rem" }}>
-            <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", marginBottom: "1.5rem", gap: "1rem" }}>
-              <div style={{ minWidth: 0 }}>
-                <h1 style={{ fontSize: "2.25rem", fontWeight: "bold", color: "#1e3a5f", marginBottom: "0.5rem", overflowWrap: "anywhere" }}>{rfq.name}</h1>
-                <p style={{ color: "#64748b", fontFamily: "monospace" }}>📌 Reference: {rfq.reference_id}</p>
-              </div>
-              {statusBadge(rfq.status)}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-7 space-y-6">
+        <section className="glass-card p-6 card-enter">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <h1 className="text-white text-3xl md:text-4xl font-extrabold break-words">{rfq.name}</h1>
+              <p className="text-slate-300 mt-1">Reference ID: {rfq.reference_id}</p>
             </div>
+            <StatusBadge status={rfq.status} />
+          </div>
 
-            {/* Key Info Grid */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1.5rem", marginTop: "2rem", paddingTop: "2rem", borderTop: "1px solid #e5e7eb" }}>
-              {/* Lowest Bid */}
-              <div style={{ textAlign: "center" }}>
-                <p style={{ fontSize: "0.875rem", fontWeight: "600", color: "#64748b", marginBottom: "0.5rem" }}>🏆 Lowest Bid</p>
-                {rfq.bids && rfq.bids.length > 0 ? (
-                  <p style={{ fontSize: "1.875rem", fontWeight: "bold", color: "#16a34a" }}>£{rfq.bids[0]?.total_charges?.toFixed(2) || "N/A"}</p>
-                ) : (
-                  <p style={{ fontSize: "1.25rem", fontWeight: "bold", color: "#9ca3af" }}>No bids yet</p>
-                )}
-              </div>
-
-              {/* Bid Count */}
-              <div style={{ textAlign: "center" }}>
-                <p style={{ fontSize: "0.875rem", fontWeight: "600", color: "#64748b", marginBottom: "0.5rem" }}>📈 Total Bids</p>
-                <p style={{ fontSize: "1.875rem", fontWeight: "bold", color: "#2563eb" }}>{rfq.bids?.length || 0}</p>
-              </div>
-
-              {/* Time Left */}
-              <div style={{ textAlign: "center" }}>
-                <p style={{ fontSize: "0.875rem", fontWeight: "600", color: "#64748b", marginBottom: "0.5rem" }}>⏱️ Time Remaining</p>
-                <CountdownTimer endTime={rfq.bid_close_time} />
-              </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-5">
+            <div className="glass-card p-4">
+              <p className="text-slate-300 text-sm">Pickup Date</p>
+              <p className="text-white font-semibold mt-1">{formatDateTime(rfq.pickup_date)}</p>
+            </div>
+            <div className="glass-card p-4">
+              <p className="text-slate-300 text-sm">Trigger Window</p>
+              <p className="text-white font-semibold mt-1">{rfq.trigger_window_minutes} min</p>
+            </div>
+            <div className="glass-card p-4">
+              <p className="text-slate-300 text-sm">Extension Duration</p>
+              <p className="text-white font-semibold mt-1">{rfq.extension_duration_minutes} min</p>
+            </div>
+            <div className="glass-card p-4">
+              <p className="text-slate-300 text-sm">Trigger Type</p>
+              <p className="text-white font-semibold mt-1 break-words">{rfq.extension_trigger_type}</p>
+            </div>
+            <div className="glass-card p-4 sm:col-span-2">
+              <p className="text-slate-300 text-sm">Bid Start</p>
+              <p className="text-white font-semibold mt-1">{formatDateTime(rfq.bid_start_time)}</p>
+            </div>
+            <div className="glass-card p-4 sm:col-span-2">
+              <p className="text-slate-300 text-sm">Force Close</p>
+              <p className="text-white font-semibold mt-1">{formatDateTime(rfq.forced_close_time)}</p>
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* Config & Timeline Card */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "1.5rem", marginBottom: "2rem" }}>
-          {/* Configuration */}
-          <div style={{ backgroundColor: "#ffffff", borderRadius: "0.75rem", boxShadow: "0 10px 15px rgba(0,0,0,0.1)", padding: "1.5rem", borderLeft: "4px solid #7c3aed" }}>
-            <h3 style={{ fontSize: "1.125rem", fontWeight: "bold", color: "#1e3a5f", marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <span>⚙️ Auction Configuration</span>
-            </h3>
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.75rem", flexWrap: "wrap", paddingBottom: "0.5rem", borderBottom: "1px solid #e5e7eb" }}>
-                <span style={{ color: "#64748b", fontWeight: "500" }}>Trigger Window</span>
-                <span style={{ fontFamily: "monospace", fontWeight: "bold", color: "#1f2937" }}>{rfq.trigger_window_minutes} minutes</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.75rem", flexWrap: "wrap", paddingBottom: "0.5rem", borderBottom: "1px solid #e5e7eb" }}>
-                <span style={{ color: "#64748b", fontWeight: "500" }}>Extension Duration</span>
-                <span style={{ fontFamily: "monospace", fontWeight: "bold", color: "#1f2937" }}>{rfq.extension_duration_minutes} minutes</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
-                <span style={{ color: "#64748b", fontWeight: "500" }}>Trigger Type</span>
-                <span style={{ fontFamily: "monospace", fontWeight: "bold", color: "#2563eb", backgroundColor: "#dbeafe", padding: "0.25rem 0.5rem", borderRadius: "0.25rem" }}>{rfq.extension_trigger_type}</span>
-              </div>
-            </div>
+        <section className="glass-card p-8 text-center card-enter">
+          <p className="text-slate-300 text-sm">Bid closes at {formatDateTime(rfq.bid_close_time)}</p>
+          <div className="mt-3">
+            <CountdownTimer endTime={rfq.bid_close_time} />
           </div>
+          <p className="text-slate-400 mt-4 text-sm">Forced close: {formatDateTime(rfq.forced_close_time)}</p>
+        </section>
 
-          {/* Timeline */}
-          <div style={{ backgroundColor: "#ffffff", borderRadius: "0.75rem", boxShadow: "0 10px 15px rgba(0,0,0,0.1)", padding: "1.5rem", borderLeft: "4px solid #2563eb" }}>
-            <h3 style={{ fontSize: "1.125rem", fontWeight: "bold", color: "#1e3a5f", marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <span>📅 Timeline</span>
-            </h3>
-            <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-              <div>
-                <p style={{ fontSize: "0.75rem", fontWeight: "600", color: "#6b7280", marginBottom: "0.25rem" }}>Bid Start</p>
-                <p style={{ fontFamily: "monospace", color: "#1f2937" }}>{formatDateTime(rfq.bid_start_time)}</p>
-              </div>
-              <div>
-                <p style={{ fontSize: "0.75rem", fontWeight: "600", color: "#6b7280", marginBottom: "0.25rem" }}>Bid Close</p>
-                <p style={{ fontFamily: "monospace", color: "#1f2937" }}>{formatDateTime(rfq.bid_close_time)}</p>
-              </div>
-              <div>
-                <p style={{ fontSize: "0.75rem", fontWeight: "600", color: "#6b7280", marginBottom: "0.25rem" }}>Force Close</p>
-                <p style={{ fontFamily: "monospace", color: "#dc2626", fontWeight: "bold" }}>{formatDateTime(rfq.forced_close_time)}</p>
-              </div>
-              <div>
-                <p style={{ fontSize: "0.75rem", fontWeight: "600", color: "#6b7280", marginBottom: "0.25rem" }}>Pickup Date</p>
-                <p style={{ fontFamily: "monospace", color: "#1f2937" }}>{rfq.pickup_date}</p>
-              </div>
-            </div>
+        <section className="glass-card p-6 card-enter">
+          <h2 className="text-white text-2xl font-bold">🏆 Live Bid Rankings</h2>
+          <div className="mt-4 overflow-hidden">
+            {rfq.bids?.length ? (
+              <table className="w-full text-sm">
+                <thead className="table-head">
+                  <tr>
+                    <th className="text-left px-3 py-2 text-white">Rank</th>
+                    <th className="text-left px-3 py-2 text-white">Carrier</th>
+                    <th className="text-left px-3 py-2 text-white">Freight</th>
+                    <th className="text-left px-3 py-2 text-white">Origin</th>
+                    <th className="text-left px-3 py-2 text-white">Destination</th>
+                    <th className="text-left px-3 py-2 text-white">Total</th>
+                    <th className="text-left px-3 py-2 text-white">Submitted</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rfq.bids.map((bid, idx) => (
+                    <tr
+                      key={bid.id}
+                      className={`${idx === 0 ? "l1-row-glow" : "table-row"} row-enter ${idx === 0 ? "row-top-enter" : ""}`}
+                      style={{ animationDelay: `${idx * 70}ms` }}
+                    >
+                      <td className="px-3 py-3">
+                        <span className={`rank-badge ${getRankClass(bid.rank)}`}>{getRankLabel(bid.rank)}</span>
+                      </td>
+                      <td className="px-3 py-3 text-slate-100 font-medium">{bid.carrier_name}</td>
+                      <td className="px-3 py-3 text-slate-200">£{Number(bid.freight_charges).toFixed(2)}</td>
+                      <td className="px-3 py-3 text-slate-200">£{Number(bid.origin_charges).toFixed(2)}</td>
+                      <td className="px-3 py-3 text-slate-200">£{Number(bid.destination_charges).toFixed(2)}</td>
+                      <td className="px-3 py-3 font-bold">
+                        <CountUpNumber value={Number(bid.total_charges)} />
+                      </td>
+                      <td className="px-3 py-3 text-slate-300">{formatDateTime(bid.submitted_at)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p className="text-slate-300">No bids submitted yet.</p>
+            )}
           </div>
-        </div>
+        </section>
 
-        {/* Bids Section */}
-        <div style={{ backgroundColor: "#ffffff", borderRadius: "0.75rem", boxShadow: "0 10px 25px rgba(0,0,0,0.1)", overflow: "hidden", marginBottom: "2rem" }}>
-          <div style={{ height: "4px", background: "linear-gradient(to right, #16a34a, #10b981)" }}></div>
-          <div style={{ padding: "2rem" }}>
-            <h2 style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#1e3a5f", marginBottom: "1.5rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <span>💰 Bid Leaderboard</span>
-            </h2>
-            <BidTable bids={rfq.bids} />
-          </div>
-        </div>
-
-        {/* Activity Log Section */}
-        <div style={{ backgroundColor: "#ffffff", borderRadius: "0.75rem", boxShadow: "0 10px 25px rgba(0,0,0,0.1)", overflow: "hidden", marginBottom: "2rem" }}>
-          <div style={{ height: "4px", background: "linear-gradient(to right, #f97316, #dc2626)" }}></div>
-          <div style={{ padding: "2rem" }}>
-            <h2 style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#1e3a5f", marginBottom: "1.5rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <span>📜 Activity Log</span>
-            </h2>
-            <ActivityLog events={rfq.auction_events} />
-          </div>
-        </div>
-
-        {/* Submit Bid Section */}
         {rfq.status === "active" && (
-          <div style={{ backgroundColor: "#ffffff", borderRadius: "0.75rem", boxShadow: "0 10px 25px rgba(0,0,0,0.1)", overflow: "hidden" }}>
-            <div style={{ height: "4px", background: "linear-gradient(to right, #06b6d4, #2563eb)" }}></div>
-            <div style={{ padding: "2rem" }}>
-              <h2 style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#1e3a5f", marginBottom: "1.5rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                <span>💸 Submit New Bid</span>
-              </h2>
+          <section className="glass-card p-6 card-enter">
+            <h2 className="text-white text-2xl font-bold">Submit Your Bid</h2>
 
-              <form onSubmit={handleBidSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem" }}>
-                  <div>
-                    <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", color: "#374151", marginBottom: "0.5rem" }}>Carrier Name *</label>
-                    <input
-                      type="text"
-                      name="carrier_name"
-                      value={bidForm.carrier_name}
-                      onChange={handleBidChange}
-                      style={{
-                        width: "100%",
-                        padding: "0.625rem 1rem",
-                        border: "2px solid #e5e7eb",
-                        borderRadius: "0.5rem",
-                        fontSize: "1rem",
-                        color: "#1f2937",
-                      }}
-                      onFocus={(e) => e.target.style.borderColor = "#2563eb"}
-                      onBlur={(e) => e.target.style.borderColor = "#e5e7eb"}
-                      placeholder="Enter carrier name"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", color: "#374151", marginBottom: "0.5rem" }}>Transit Time (days) *</label>
-                    <input
-                      type="number"
-                      name="transit_time"
-                      value={bidForm.transit_time}
-                      onChange={handleBidChange}
-                      style={{
-                        width: "100%",
-                        padding: "0.625rem 1rem",
-                        border: "2px solid #e5e7eb",
-                        borderRadius: "0.5rem",
-                        fontSize: "1rem",
-                        color: "#1f2937",
-                      }}
-                      onFocus={(e) => e.target.style.borderColor = "#2563eb"}
-                      onBlur={(e) => e.target.style.borderColor = "#e5e7eb"}
-                      required
-                      min="1"
-                      placeholder="Days"
-                    />
-                  </div>
-                </div>
-
-                <div style={{ borderBottom: "2px solid #e2e8f0", paddingBottom: "1rem" }}>
-                  <h3 style={{ fontWeight: "600", color: "#1f2937", marginBottom: "1rem" }}>💷 Charges Breakdown</h3>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem" }}>
-                    <div>
-                      <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", color: "#374151", marginBottom: "0.5rem" }}>Freight Charges (£) *</label>
-                      <input
-                        type="number"
-                        name="freight_charges"
-                        value={bidForm.freight_charges}
-                        onChange={handleBidChange}
-                        style={{
-                          width: "100%",
-                          padding: "0.625rem 1rem",
-                          border: "2px solid #e5e7eb",
-                          borderRadius: "0.5rem",
-                          fontSize: "1rem",
-                          color: "#1f2937",
-                        }}
-                        onFocus={(e) => e.target.style.borderColor = "#2563eb"}
-                        onBlur={(e) => e.target.style.borderColor = "#e5e7eb"}
-                        required
-                        min="0"
-                        step="0.01"
-                        placeholder="0.00"
-                      />
-                    </div>
-                    <div>
-                      <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", color: "#374151", marginBottom: "0.5rem" }}>Origin Charges (£) *</label>
-                      <input
-                        type="number"
-                        name="origin_charges"
-                        value={bidForm.origin_charges}
-                        onChange={handleBidChange}
-                        style={{
-                          width: "100%",
-                          padding: "0.625rem 1rem",
-                          border: "2px solid #e5e7eb",
-                          borderRadius: "0.5rem",
-                          fontSize: "1rem",
-                          color: "#1f2937",
-                        }}
-                        onFocus={(e) => e.target.style.borderColor = "#2563eb"}
-                        onBlur={(e) => e.target.style.borderColor = "#e5e7eb"}
-                        required
-                        min="0"
-                        step="0.01"
-                        placeholder="0.00"
-                      />
-                    </div>
-                    <div>
-                      <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", color: "#374151", marginBottom: "0.5rem" }}>Destination Charges (£) *</label>
-                      <input
-                        type="number"
-                        name="destination_charges"
-                        value={bidForm.destination_charges}
-                        onChange={handleBidChange}
-                        style={{
-                          width: "100%",
-                          padding: "0.625rem 1rem",
-                          border: "2px solid #e5e7eb",
-                          borderRadius: "0.5rem",
-                          fontSize: "1rem",
-                          color: "#1f2937",
-                        }}
-                        onFocus={(e) => e.target.style.borderColor = "#2563eb"}
-                        onBlur={(e) => e.target.style.borderColor = "#e5e7eb"}
-                        required
-                        min="0"
-                        step="0.01"
-                        placeholder="0.00"
-                      />
-                    </div>
-                  </div>
-                </div>
-
+            <form className="mt-4 space-y-4" onSubmit={handleBidSubmit}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", color: "#374151", marginBottom: "0.5rem" }}>Quote Validity *</label>
-                  <input
-                    type="date"
-                    name="quote_validity"
-                    value={bidForm.quote_validity}
-                    onChange={handleBidChange}
-                    style={{
-                      width: "100%",
-                      padding: "0.625rem 1rem",
-                      border: "2px solid #e5e7eb",
-                      borderRadius: "0.5rem",
-                      fontSize: "1rem",
-                      color: "#1f2937",
-                    }}
-                    onFocus={(e) => e.target.style.borderColor = "#2563eb"}
-                    onBlur={(e) => e.target.style.borderColor = "#e5e7eb"}
-                    required
-                  />
+                  <label className="text-slate-100 text-sm font-medium">Carrier Name</label>
+                  <input className="glass-input mt-1" name="carrier_name" value={bidForm.carrier_name} onChange={handleBidChange} required />
                 </div>
+                <div>
+                  <label className="text-slate-100 text-sm font-medium">Transit Time (days)</label>
+                  <input className="glass-input mt-1" type="number" min="1" name="transit_time" value={bidForm.transit_time} onChange={handleBidChange} required />
+                </div>
+              </div>
 
-                {bidError && (
-                  <div style={{ backgroundColor: "#fee2e2", borderLeft: "4px solid #dc2626", padding: "1rem", borderRadius: "0.375rem" }}>
-                    <p style={{ color: "#991b1b", fontWeight: "500" }}>⚠️ {bidError}</p>
-                  </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="text-slate-100 text-sm font-medium">Freight Charges</label>
+                  <input className="glass-input mt-1" type="number" min="0" step="0.01" name="freight_charges" value={bidForm.freight_charges} onChange={handleBidChange} required />
+                </div>
+                <div>
+                  <label className="text-slate-100 text-sm font-medium">Origin Charges</label>
+                  <input className="glass-input mt-1" type="number" min="0" step="0.01" name="origin_charges" value={bidForm.origin_charges} onChange={handleBidChange} required />
+                </div>
+                <div>
+                  <label className="text-slate-100 text-sm font-medium">Destination Charges</label>
+                  <input className="glass-input mt-1" type="number" min="0" step="0.01" name="destination_charges" value={bidForm.destination_charges} onChange={handleBidChange} required />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-slate-100 text-sm font-medium">Quote Validity</label>
+                <input className="glass-input mt-1" type="date" name="quote_validity" value={bidForm.quote_validity} onChange={handleBidChange} required />
+              </div>
+
+              {bidError && <p className="field-error">{bidError}</p>}
+              {bidSuccess && <p className="text-emerald-300 font-semibold">✅ {bidSuccess}</p>}
+
+              <button type="submit" className="w-full gradient-btn rounded-xl py-4 font-bold text-white flex items-center justify-center gap-2" disabled={submitting}>
+                {submitting ? (
+                  <>
+                    <span className="spinner"></span>
+                    Submitting...
+                  </>
+                ) : (
+                  "Submit Bid"
                 )}
-
-                {bidSuccess && (
-                  <div style={{ backgroundColor: "#dcfce7", borderLeft: "4px solid #16a34a", padding: "1rem", borderRadius: "0.375rem" }}>
-                    <p style={{ color: "#166534", fontWeight: "500" }}>{bidSuccess}</p>
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  style={{
-                    width: "100%",
-                    backgroundColor: "#16a34a",
-                    color: "white",
-                    fontWeight: "600",
-                    padding: "0.75rem",
-                    borderRadius: "0.5rem",
-                    border: "none",
-                    cursor: submitting ? "not-allowed" : "pointer",
-                    opacity: submitting ? 0.5 : 1,
-                    transition: "background-color 0.2s",
-                  }}
-                  onMouseEnter={(e) => e.target.style.backgroundColor = submitting ? "#16a34a" : "#15803d"}
-                  onMouseLeave={(e) => e.target.style.backgroundColor = "#16a34a"}
-                  disabled={submitting}
-                >
-                  {submitting ? "⏳ Submitting..." : "✅ Submit Bid"}
-                </button>
-              </form>
-            </div>
-          </div>
+              </button>
+            </form>
+          </section>
         )}
+
+        <section className="glass-card p-6 card-enter">
+          <h2 className="text-white text-2xl font-bold">🕒 Activity Log</h2>
+
+          <div className="mt-4 space-y-3">
+            {events.length ? (
+              events.map((event, idx) => {
+                const isBid = event.event_type === "bid_submitted";
+                const isExtend = event.event_type === "time_extended";
+                const rowClass = isBid ? "activity-bid" : isExtend ? "activity-extend" : "activity-close";
+
+                let message = "Auction closed";
+                if (isBid) {
+                  message = event.description || "Bid submitted";
+                } else if (isExtend) {
+                  message = `Auction extended: ${formatDateTime(event.old_close_time)} → ${formatDateTime(event.new_close_time)}`;
+                }
+
+                const icon = isBid ? "🔵" : isExtend ? "🟠" : "⚫";
+
+                return (
+                  <div key={event.id} className={`activity-row ${rowClass} row-enter`} style={{ animationDelay: `${idx * 70}ms` }}>
+                    <p className="text-slate-100">
+                      {icon} {message}
+                    </p>
+                    <p className="text-slate-400 text-xs mt-1">{formatDateTime(event.triggered_at)}</p>
+                  </div>
+                );
+              })
+            ) : (
+              <p className="text-slate-300">No activity events yet.</p>
+            )}
+          </div>
+        </section>
       </div>
     </div>
   );
