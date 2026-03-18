@@ -1,6 +1,7 @@
 
 from datetime import datetime, timedelta
 from models import RFQ, Bid, AuctionEvent
+from timezone_util import get_british_time_naive
 
 class AuctionEngine:
     def process_bid_event(self, db, rfq_id, new_bid):
@@ -10,7 +11,7 @@ class AuctionEngine:
         rfq = db.query(RFQ).filter(RFQ.id == rfq_id).first()
         if not rfq:
             return
-        now = datetime.utcnow()
+        now = get_british_time_naive()
 
         # Step 3: Check if current time is within trigger window
         trigger_start = rfq.bid_close_time - timedelta(minutes=rfq.trigger_window_minutes)
@@ -75,7 +76,7 @@ class AuctionEngine:
         Called by background scheduler every 30 seconds.
         Closes auctions based on time.
         """
-        now = datetime.utcnow()
+        now = get_british_time_naive()
         active_rfqs = db.query(RFQ).filter(RFQ.status == "active").all()
         for rfq in active_rfqs:
             if now >= rfq.forced_close_time:

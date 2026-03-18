@@ -5,6 +5,12 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from database import engine, Base, SessionLocal
 from routers import rfq, bids
 from services.auction_engine import AuctionEngine
+import os
+
+# Set timezone to British Time (Europe/London)
+os.environ['TZ'] = 'Europe/London'
+import time
+time.tzset()
 
 app = FastAPI(title="British Auction RFQ System")
 
