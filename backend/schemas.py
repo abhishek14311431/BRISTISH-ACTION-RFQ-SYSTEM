@@ -21,7 +21,15 @@ class RFQCreateRequest(BaseModel):
             return value
         if isinstance(value, str):
             raw = value.strip()
-            for fmt in ("%Y-%m-%dT%H:%M", "%Y-%m-%dT%H:%M:%S"):
+            # Try multiple formats including DD-MM-YYYY and space separator
+            for fmt in (
+                "%Y-%m-%dT%H:%M", 
+                "%Y-%m-%dT%H:%M:%S", 
+                "%d-%m-%Y %H:%M", 
+                "%d-%m-%Y %H:%M:%S",
+                "%Y-%m-%d %H:%M:%S",
+                "%Y-%m-%d %H:%M"
+            ):
                 try:
                     return datetime.strptime(raw, fmt)
                 except ValueError:
@@ -30,7 +38,7 @@ class RFQCreateRequest(BaseModel):
                 return datetime.fromisoformat(raw.replace("Z", "+00:00"))
             except ValueError as exc:
                 raise ValueError(
-                    "Invalid datetime format. Use YYYY-MM-DDTHH:MM or YYYY-MM-DDTHH:MM:SS"
+                    f"Invalid datetime format: '{raw}'. Use YYYY-MM-DDTHH:MM or DD-MM-YYYY HH:MM"
                 ) from exc
         raise ValueError("Datetime must be a string")
 
@@ -42,7 +50,7 @@ class RFQCreateRequest(BaseModel):
             return value.date()
         if isinstance(value, str):
             raw = value.strip()
-            for fmt in ("%Y-%m-%d", "%Y-%m-%dT%H:%M", "%Y-%m-%dT%H:%M:%S"):
+            for fmt in ("%Y-%m-%d", "%d-%m-%Y", "%Y-%m-%dT%H:%M", "%Y-%m-%dT%H:%M:%S"):
                 try:
                     parsed = datetime.strptime(raw, fmt)
                     return parsed.date()
@@ -51,5 +59,5 @@ class RFQCreateRequest(BaseModel):
             try:
                 return datetime.fromisoformat(raw.replace("Z", "+00:00")).date()
             except ValueError as exc:
-                raise ValueError("Invalid pickup_date format. Use YYYY-MM-DD") from exc
+                raise ValueError(f"Invalid pickup_date format: '{raw}'. Use YYYY-MM-DD or DD-MM-YYYY") from exc
         raise ValueError("pickup_date must be a string")

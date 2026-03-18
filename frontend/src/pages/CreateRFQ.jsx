@@ -45,6 +45,8 @@ export default function CreateRFQ() {
         bid_start_time: normalizeDatetimeLocal(form.bid_start_time),
         bid_close_time: normalizeDatetimeLocal(form.bid_close_time),
         forced_close_time: normalizeDatetimeLocal(form.forced_close_time),
+        trigger_window_minutes: parseInt(form.trigger_window_minutes) || 0,
+        extension_duration_minutes: parseInt(form.extension_duration_minutes) || 0,
         status: 'active'
       };
 
