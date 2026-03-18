@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from database import SessionLocal
 from models import RFQ, Bid, AuctionEvent
-from schemas import RFQ as RFQSchema, RFQBase, Bid as BidSchema
+from schemas import RFQCreateRequest
 from pydantic import BaseModel
 from datetime import datetime
 
@@ -16,19 +16,6 @@ def get_db():
         yield db
     finally:
         db.close()
-
-# Pydantic schemas for request/response
-class RFQCreateSchema(BaseModel):
-    name: str
-    reference_id: str
-    bid_start_time: datetime
-    bid_close_time: datetime
-    forced_close_time: datetime
-    pickup_date: datetime
-    status: str
-    trigger_window_minutes: int
-    extension_duration_minutes: int
-    extension_trigger_type: str
 
 class RFQListItemSchema(BaseModel):
     id: int
@@ -77,23 +64,25 @@ class RFQDetailSchema(BaseModel):
 
 # 1. POST /rfq/ — Create a new RFQ
 @router.post("/", response_model=RFQDetailSchema)
-def create_rfq(rfq: RFQCreateSchema, db: Session = Depends(get_db)):
+def create_rfq(rfq_data: RFQCreateRequest, db: Session = Depends(get_db)):
     try:
-        if rfq.forced_close_time <= rfq.bid_close_time:
+        print("Received:", rfq_data.dict())
+
+        if rfq_data.forced_close_time <= rfq_data.bid_close_time:
             raise HTTPException(status_code=400, detail="Forced close time must be after bid close time.")
-        if rfq.bid_start_time >= rfq.bid_close_time:
+        if rfq_data.bid_start_time >= rfq_data.bid_close_time:
             raise HTTPException(status_code=400, detail="Bid start time must be before bid close time.")
         db_rfq = RFQ(
-            name=rfq.name,
-            reference_id=rfq.reference_id,
-            bid_start_time=rfq.bid_start_time,
-            bid_close_time=rfq.bid_close_time,
-            forced_close_time=rfq.forced_close_time,
-            pickup_date=rfq.pickup_date,
-            status=rfq.status,
-            trigger_window_minutes=rfq.trigger_window_minutes,
-            extension_duration_minutes=rfq.extension_duration_minutes,
-            extension_trigger_type=rfq.extension_trigger_type,
+            name=rfq_data.name,
+            reference_id=rfq_data.reference_id,
+            bid_start_time=rfq_data.bid_start_time,
+            bid_close_time=rfq_data.bid_close_time,
+            forced_close_time=rfq_data.forced_close_time,
+            pickup_date=rfq_data.pickup_date,
+            status=rfq_data.status,
+            trigger_window_minutes=rfq_data.trigger_window_minutes,
+            extension_duration_minutes=rfq_data.extension_duration_minutes,
+            extension_trigger_type=rfq_data.extension_trigger_type,
             created_at=datetime.utcnow()
         )
         db.add(db_rfq)

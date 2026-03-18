@@ -1,0 +1,14 @@
+{
+  "files": {
+    "main.css": "/static/css/main.2b05b2a9.css",
+    "main.js": "/static/js/main.827bafb4.js",
+    "static/media/british-building.jpg": "/static/media/british-building.453a2a678ef4ba15da78.jpg",
+    "index.html": "/index.html",
+    "main.2b05b2a9.css.map": "/static/css/main.2b05b2a9.css.map",
+    "main.827bafb4.js.map": "/static/js/main.827bafb4.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.2b05b2a9.css",
+    "static/js/main.827bafb4.js"
+  ]
+}

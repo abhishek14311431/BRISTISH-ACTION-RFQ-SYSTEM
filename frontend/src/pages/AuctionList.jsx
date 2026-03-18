@@ -2,34 +2,36 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getAllRFQs } from "../api/axios";
 
-const formatDateTime = (dt) => {
-  if (!dt) return "";
-  return new Date(dt).toLocaleString("en-US", {
+function formatDateTime(datetime) {
+  if (!datetime) return "N/A";
+  const date = new Date(datetime);
+  return date.toLocaleString("en-US", {
     month: "short",
-    day: "2-digit",
+    day: "numeric",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-    hour12: true,
+    hour12: true
   });
-};
+}
 
-const StatusBadge = ({ status }) => {
-  if (status === "active") {
-    return (
-      <span className="status-pill status-active">
-        <span className="active-dot"></span>
-        Active
-      </span>
-    );
-  }
-
-  if (status === "force_closed") {
-    return <span className="status-pill status-force">Force Closed</span>;
-  }
-
-  return <span className="status-pill status-closed">Closed</span>;
-};
+function getStatusBadge(status) {
+  const styles = {
+    active: { background:"rgba(74,222,128,0.2)", border:"1px solid rgba(74,222,128,0.5)", color:"#4ade80" },
+    closed: { background:"rgba(148,163,184,0.2)", border:"1px solid rgba(148,163,184,0.5)", color:"#94a3b8" },
+    force_closed: { background:"rgba(248,113,113,0.2)", border:"1px solid rgba(248,113,113,0.5)", color:"#f87171" }
+  };
+  const labels = { active:"● Active", closed:"● Closed", force_closed:"● Force Closed" };
+  return (
+    <span style={{
+      ...(styles[status] || styles.closed),
+      padding:"4px 12px",
+      borderRadius:"20px",
+      fontSize:"12px",
+      fontWeight:"600"
+    }}>{labels[status] || labels.closed}</span>
+  );
+}
 
 const AuctionList = () => {
   const navigate = useNavigate();
@@ -54,144 +56,107 @@ const AuctionList = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const totalAuctions = rfqs.length;
-  const activeAuctions = rfqs.filter((item) => item.status === "active").length;
-  const closedAuctions = rfqs.filter((item) => item.status !== "active").length;
-
   return (
-    <div className="w-full overflow-x-hidden page-enter">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <section className="glass-card card-enter p-6 mb-6">
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div>
-              <h1 className="text-white text-3xl md:text-4xl font-extrabold">RFQ Auctions</h1>
-              <p className="text-slate-300 mt-2">Manage and monitor all British Auction RFQs</p>
+    <div style={{paddingTop: "60px", maxWidth: "960px", margin: "0 auto", padding: "64px 20px 20px", width: "90%", overflowX: "hidden"}}>
+
+      {/* Header Row */}
+      <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"24px", gap: "12px", flexWrap: "nowrap"}}>
+        <div>
+          <h1 style={{fontSize:"1.6rem", fontWeight:"700", color:"white", margin:0}}>🏛️ RFQ Auctions</h1>
+          <p style={{fontSize: "0.9rem", color:"rgba(255,255,255,0.6)", marginTop:"6px"}}>Manage and monitor all British Auction RFQs</p>
+        </div>
+      </div>
+
+      {/* Stats Row - 3 cards side by side */}
+      <div style={{display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"16px", marginBottom:"24px"}}>
+        <div className="glass-card" style={{padding: "16px", textAlign:"center", border: "1px solid rgba(255,255,255,0.1)"}}>
+          <div style={{fontSize:"1.6rem", fontWeight:"700", color:"white"}}>{rfqs.length}</div>
+          <div style={{fontSize: "0.85rem", color:"rgba(255,255,255,0.6)"}}>Total Auctions</div>
+        </div>
+        <div
+          className="glass-card"
+          style={{
+            padding: "16px",
+            textAlign:"center",
+            border: "1px solid rgba(74,222,128,0.3)",
+            boxShadow: "0 6px 24px rgba(0, 0, 0, 0.4), 0 0 20px rgba(74, 222, 128, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1)"
+          }}
+        >
+          <div style={{fontSize:"1.6rem", fontWeight:"700", color:"#4ade80"}}>{rfqs.filter(r=>r.status==="active").length}</div>
+          <div style={{fontSize: "0.85rem", color:"rgba(255,255,255,0.6)"}}>Active Auctions</div>
+        </div>
+        <div
+          className="glass-card"
+          style={{
+            padding: "16px",
+            textAlign:"center",
+            border: "1px solid rgba(148,163,184,0.3)",
+            boxShadow: "0 6px 24px rgba(0, 0, 0, 0.4), 0 0 20px rgba(148, 163, 184, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1)"
+          }}
+        >
+          <div style={{fontSize:"1.6rem", fontWeight:"700", color:"#94a3b8"}}>{rfqs.filter(r=>r.status!=="active").length}</div>
+          <div style={{fontSize: "0.85rem", color:"rgba(255,255,255,0.6)"}}>Closed Auctions</div>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="glass-card" style={{padding: "16px", textAlign: "center", color: "rgba(255,255,255,0.8)"}}>
+          Loading auctions...
+        </div>
+      ) : (
+        <>
+          {rfqs.length === 0 ? (
+            <div className="glass-card" style={{padding: "16px", textAlign: "center", color: "rgba(255,255,255,0.8)"}}>
+              No auctions yet
             </div>
-
-            <button
-              type="button"
-              className="gradient-btn text-white px-5 py-2.5 rounded-xl font-semibold"
-              onClick={() => navigate("/create-rfq")}
-            >
-              Create New RFQ
-            </button>
-          </div>
-        </section>
-
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="glass-card p-5 card-enter">
-            <p className="text-slate-300 text-sm">📦 Total Auctions</p>
-            <p className="text-white text-3xl font-bold mt-2">{totalAuctions}</p>
-          </div>
-          <div className="glass-card p-5 card-enter" style={{ animationDelay: "60ms" }}>
-            <p className="text-slate-300 text-sm">🟢 Active Auctions</p>
-            <p className="text-white text-3xl font-bold mt-2">{activeAuctions}</p>
-          </div>
-          <div className="glass-card p-5 card-enter" style={{ animationDelay: "120ms" }}>
-            <p className="text-slate-300 text-sm">⚫ Closed Auctions</p>
-            <p className="text-white text-3xl font-bold mt-2">{closedAuctions}</p>
-          </div>
-        </section>
-
-        {loading && (
-          <div className="glass-card p-12 text-center text-slate-200 card-enter">
-            <div className="spinner mx-auto"></div>
-            <p className="mt-4">Loading auctions...</p>
-          </div>
-        )}
-
-        {!loading && rfqs.length === 0 && (
-          <div className="glass-card p-12 text-center card-enter">
-            <div className="floating-icon text-5xl">📭</div>
-            <p className="text-white text-xl font-semibold mt-3">No auctions yet</p>
-            <p className="text-slate-300 mt-1">Create your first RFQ to get started</p>
-            <button
-              type="button"
-              className="gradient-btn mt-5 px-5 py-2.5 rounded-xl font-semibold"
-              onClick={() => navigate("/create-rfq")}
-            >
-              Create RFQ
-            </button>
-          </div>
-        )}
-
-        {!loading && rfqs.length > 0 && (
-          <div className="glass-card overflow-hidden">
-            <div className="hidden md:block overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="table-head text-white">
-                  <tr>
-                    <th className="text-left px-4 py-3 font-semibold">RFQ Name</th>
-                    <th className="text-left px-4 py-3 font-semibold">Reference</th>
-                    <th className="text-left px-4 py-3 font-semibold">Lowest Bid</th>
-                    <th className="text-left px-4 py-3 font-semibold">Bid Close</th>
-                    <th className="text-left px-4 py-3 font-semibold">Force Close</th>
-                    <th className="text-left px-4 py-3 font-semibold">Status</th>
-                    <th className="text-left px-4 py-3 font-semibold">Action</th>
+          ) : (
+            <div className="glass-card" style={{overflowX: "auto"}}>
+              <table style={{width:"100%", borderCollapse:"collapse", minWidth: "980px"}}>
+                <thead>
+                  <tr style={{borderBottom:"1px solid rgba(255,255,255,0.05)", background:"rgba(255,140,0,0.1)"}}>
+                    <th style={{padding:"12px 16px", textAlign:"left", color:"rgba(255,255,255,0.7)", fontWeight:"600"}}>RFQ Name</th>
+                    <th style={{padding:"12px 16px", textAlign:"left", color:"rgba(255,255,255,0.7)", fontWeight:"600"}}>Reference ID</th>
+                    <th style={{padding:"12px 16px", textAlign:"left", color:"rgba(255,255,255,0.7)", fontWeight:"600"}}>Lowest Bid</th>
+                    <th style={{padding:"12px 16px", textAlign:"left", color:"rgba(255,255,255,0.7)", fontWeight:"600"}}>Bid Close Time</th>
+                    <th style={{padding:"12px 16px", textAlign:"left", color:"rgba(255,255,255,0.7)", fontWeight:"600"}}>Forced Close</th>
+                    <th style={{padding:"12px 16px", textAlign:"left", color:"rgba(255,255,255,0.7)", fontWeight:"600"}}>Status</th>
+                    <th style={{padding:"12px 16px", textAlign:"left", color:"rgba(255,255,255,0.7)", fontWeight:"600"}}>Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {rfqs.map((rfq, index) => (
-                    <tr key={rfq.id} className="table-row row-enter" style={{ animationDelay: `${index * 70}ms` }}>
-                      <td className="px-4 py-3 text-slate-100 font-medium">{rfq.name}</td>
-                      <td className="px-4 py-3 text-slate-300">{rfq.reference_id}</td>
-                      <td className="px-4 py-3">
-                        {rfq.lowest_bid == null ? (
-                          <span className="text-slate-400">No bids</span>
-                        ) : (
-                          <span className="lowest-bid">£{rfq.lowest_bid.toFixed(2)}</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-slate-200">{formatDateTime(rfq.bid_close_time)}</td>
-                      <td className="px-4 py-3 text-slate-200">{formatDateTime(rfq.forced_close_time)}</td>
-                      <td className="px-4 py-3">
-                        <StatusBadge status={rfq.status} />
-                      </td>
-                      <td className="px-4 py-3">
-                        <button
-                          type="button"
-                          className="view-btn px-4 py-2 font-medium"
-                          onClick={() => navigate(`/rfq/${rfq.id}`)}
-                        >
-                          View Details
-                        </button>
+                  {rfqs.map((rfq) => (
+                    <tr key={rfq.id} style={{
+                      borderBottom:"1px solid rgba(255,255,255,0.05)",
+                      transition:"background 0.2s"
+                    }}
+                    onMouseEnter={e=>e.currentTarget.style.background="rgba(255,140,0,0.05)"}
+                    onMouseLeave={e=>e.currentTarget.style.background="transparent"}
+                    >
+                      <td style={{padding:"16px", color:"white", fontWeight:"500"}}>{rfq.name}</td>
+                      <td style={{padding:"16px", color:"rgba(255,255,255,0.7)"}}>{rfq.reference_id}</td>
+                      <td style={{padding:"16px", color:"#4ade80", fontWeight:"700"}}>{rfq.lowest_bid ? `$${rfq.lowest_bid}` : "No bids yet"}</td>
+                      <td style={{padding:"16px", color:"rgba(255,255,255,0.7)"}}>{formatDateTime(rfq.bid_close_time)}</td>
+                      <td style={{padding:"16px", color:"rgba(255,255,255,0.7)"}}>{formatDateTime(rfq.forced_close_time)}</td>
+                      <td style={{padding:"16px"}}>{getStatusBadge(rfq.status)}</td>
+                      <td style={{padding:"16px"}}>
+                        <button onClick={()=>navigate(`/rfq/${rfq.id}`)} style={{
+                          background:"linear-gradient(135deg, #f59e0b, #d97706)",
+                          border:"1px solid rgba(245,158,11,0.6)",
+                          color:"#ffffff",
+                          padding:"8px 16px",
+                          borderRadius:"8px",
+                          cursor:"pointer",
+                          fontWeight:"500"
+                        }}>View Details →</button>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-
-            <div className="md:hidden p-4 space-y-3">
-              {rfqs.map((rfq, index) => (
-                <div key={rfq.id} className="glass-card p-4 row-enter" style={{ animationDelay: `${index * 60}ms` }}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-white font-semibold break-words">{rfq.name}</p>
-                      <p className="text-slate-300 text-xs mt-1">{rfq.reference_id}</p>
-                    </div>
-                    <StatusBadge status={rfq.status} />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 mt-3 text-xs text-slate-300">
-                    <p>Lowest: {rfq.lowest_bid == null ? "No bids" : `£${rfq.lowest_bid.toFixed(2)}`}</p>
-                    <p>Close: {formatDateTime(rfq.bid_close_time)}</p>
-                    <p className="col-span-2">Force Close: {formatDateTime(rfq.forced_close_time)}</p>
-                  </div>
-
-                  <button
-                    type="button"
-                    className="view-btn w-full mt-3 px-4 py-2 font-medium"
-                    onClick={() => navigate(`/rfq/${rfq.id}`)}
-                  >
-                    View Details
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+          )}
+        </>
+      )}
     </div>
   );
 };

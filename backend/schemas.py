@@ -1,46 +1,55 @@
-# Pydantic schemas for Auction, RFQ, Bid
-from pydantic import BaseModel
-from typing import List, Optional
-from datetime import datetime
+# Pydantic schemas for RFQ creation
+from pydantic import BaseModel, validator
+from datetime import datetime, date
 
-class BidBase(BaseModel):
-    bidder: str
-    amount: float
 
-class BidCreate(BidBase):
-    pass
+class RFQCreateRequest(BaseModel):
+    name: str
+    reference_id: str
+    bid_start_time: datetime
+    bid_close_time: datetime
+    forced_close_time: datetime
+    pickup_date: date
+    status: str = "active"
+    trigger_window_minutes: int
+    extension_duration_minutes: int
+    extension_trigger_type: str
 
-class Bid(BidBase):
-    id: int
-    auction_id: int
-    timestamp: datetime
-    class Config:
-        orm_mode = True
+    @validator("bid_start_time", "bid_close_time", "forced_close_time", pre=True)
+    def parse_datetime_local(cls, value):
+        if isinstance(value, datetime):
+            return value
+        if isinstance(value, str):
+            raw = value.strip()
+            for fmt in ("%Y-%m-%dT%H:%M", "%Y-%m-%dT%H:%M:%S"):
+                try:
+                    return datetime.strptime(raw, fmt)
+                except ValueError:
+                    continue
+            try:
+                return datetime.fromisoformat(raw.replace("Z", "+00:00"))
+            except ValueError as exc:
+                raise ValueError(
+                    "Invalid datetime format. Use YYYY-MM-DDTHH:MM or YYYY-MM-DDTHH:MM:SS"
+                ) from exc
+        raise ValueError("Datetime must be a string")
 
-class AuctionBase(BaseModel):
-    status: str
-
-class AuctionCreate(AuctionBase):
-    rfq_id: int
-
-class Auction(AuctionBase):
-    id: int
-    rfq_id: int
-    bids: List[Bid] = []
-    class Config:
-        orm_mode = True
-
-class RFQBase(BaseModel):
-    title: str
-    description: str
-    start_time: datetime
-    end_time: datetime
-
-class RFQCreate(RFQBase):
-    pass
-
-class RFQ(RFQBase):
-    id: int
-    auctions: List[Auction] = []
-    class Config:
-        orm_mode = True
+    @validator("pickup_date", pre=True)
+    def parse_pickup_date(cls, value):
+        if isinstance(value, date) and not isinstance(value, datetime):
+            return value
+        if isinstance(value, datetime):
+            return value.date()
+        if isinstance(value, str):
+            raw = value.strip()
+            for fmt in ("%Y-%m-%d", "%Y-%m-%dT%H:%M", "%Y-%m-%dT%H:%M:%S"):
+                try:
+                    parsed = datetime.strptime(raw, fmt)
+                    return parsed.date()
+                except ValueError:
+                    continue
+            try:
+                return datetime.fromisoformat(raw.replace("Z", "+00:00")).date()
+            except ValueError as exc:
+                raise ValueError("Invalid pickup_date format. Use YYYY-MM-DD") from exc
+        raise ValueError("pickup_date must be a string")
