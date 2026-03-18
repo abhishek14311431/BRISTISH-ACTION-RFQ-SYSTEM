@@ -216,11 +216,11 @@ export default function CreateRFQ() {
         {/* Trigger Type */}
         <div style={fieldStyle}>
           <label style={labelStyle}>Extension Trigger Type</label>
-          <select style={{...inputStyle, cursor: 'pointer'}}
+          <select style={{...inputStyle, cursor: 'pointer', colorScheme: 'light'}}
             value={form.extension_trigger_type} onChange={e => setForm({...form, extension_trigger_type: e.target.value})}>
-            <option value="bid_received">Bid Received in Last X Minutes</option>
-            <option value="any_rank_change">Any Supplier Rank Change</option>
-            <option value="l1_rank_change">L1 (Lowest Bidder) Rank Change</option>
+            <option value="bid_received" style={{ color: '#111827', backgroundColor: '#ffffff' }}>Bid Received in Last X Minutes</option>
+            <option value="any_rank_change" style={{ color: '#111827', backgroundColor: '#ffffff' }}>Any Supplier Rank Change</option>
+            <option value="l1_rank_change" style={{ color: '#111827', backgroundColor: '#ffffff' }}>L1 (Lowest Bidder) Rank Change</option>
           </select>
         </div>
 

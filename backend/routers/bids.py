@@ -7,6 +7,14 @@ from pydantic import BaseModel
 
 router = APIRouter(prefix="/bids", tags=["Bids"])
 
+
+def compute_status_from_time(rfq: RFQ, now: datetime) -> str:
+    if now >= rfq.forced_close_time:
+        return "force_closed"
+    if now >= rfq.bid_close_time:
+        return "closed"
+    return "active"
+
 def get_db():
     db = SessionLocal()
     try:
@@ -46,6 +54,20 @@ def submit_bid(rfq_id: int, bid: BidCreateSchema, db: Session = Depends(get_db))
         now = datetime.utcnow()
         if not rfq:
             raise HTTPException(status_code=404, detail="RFQ not found")
+
+        effective_status = compute_status_from_time(rfq, now)
+        if rfq.status != effective_status:
+            old_status = rfq.status
+            rfq.status = effective_status
+            db.add(AuctionEvent(
+                rfq_id=rfq_id,
+                event_type="auction_closed",
+                description=f"Auction status updated by bid-time check ({old_status} -> {effective_status})",
+                old_close_time=rfq.bid_close_time,
+                new_close_time=rfq.forced_close_time if effective_status == "force_closed" else rfq.bid_close_time,
+                triggered_at=now
+            ))
+            db.commit()
         
         if rfq.status != "active":
             raise HTTPException(status_code=400, detail=f"RFQ is not active (status={rfq.status})")
@@ -70,7 +92,7 @@ def submit_bid(rfq_id: int, bid: BidCreateSchema, db: Session = Depends(get_db))
         try:
             from services.auction_engine import AuctionEngine
             engine = AuctionEngine()
-            engine.process_bid_event(rfq, db_bid, db)
+            engine.process_bid_event(db, rfq_id, db_bid)
         except Exception as e:
             print(f"Auction engine error (non-fatal): {e}")
 
@@ -92,6 +114,8 @@ def submit_bid(rfq_id: int, bid: BidCreateSchema, db: Session = Depends(get_db))
         db.commit()
 
         return db_bid
+    except HTTPException:
+        raise
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed: {str(e)}")

@@ -10,6 +10,33 @@ from datetime import datetime
 
 router = APIRouter(prefix="/rfq", tags=["RFQ"])
 
+
+def compute_status_from_time(bid_close_time: datetime, forced_close_time: datetime, now: datetime) -> str:
+    if now >= forced_close_time:
+        return "force_closed"
+    if now >= bid_close_time:
+        return "closed"
+    return "active"
+
+
+def sync_rfq_status(rfq: RFQ, db: Session, now: datetime) -> bool:
+    effective_status = compute_status_from_time(rfq.bid_close_time, rfq.forced_close_time, now)
+    if rfq.status == effective_status:
+        return False
+
+    old_status = rfq.status
+    rfq.status = effective_status
+    event = AuctionEvent(
+        rfq_id=rfq.id,
+        event_type="auction_closed",
+        description=f"Auction status updated by time check ({old_status} -> {effective_status})",
+        old_close_time=rfq.bid_close_time,
+        new_close_time=rfq.forced_close_time if effective_status == "force_closed" else rfq.bid_close_time,
+        triggered_at=now,
+    )
+    db.add(event)
+    return True
+
 def get_db():
     db = SessionLocal()
     try:
@@ -77,6 +104,7 @@ def create_rfq(rfq_data: RFQCreateRequest, db: Session = Depends(get_db)):
         if rfq_data.bid_start_time >= rfq_data.bid_close_time:
             raise HTTPException(status_code=400, detail="Bid start time must be before bid close time.")
         
+        now = datetime.utcnow()
         db_rfq = RFQ(
             name=rfq_data.name,
             reference_id=rfq_data.reference_id,
@@ -84,11 +112,11 @@ def create_rfq(rfq_data: RFQCreateRequest, db: Session = Depends(get_db)):
             bid_close_time=rfq_data.bid_close_time,
             forced_close_time=rfq_data.forced_close_time,
             pickup_date=rfq_data.pickup_date,
-            status=rfq_data.status,
+            status=compute_status_from_time(rfq_data.bid_close_time, rfq_data.forced_close_time, now),
             trigger_window_minutes=rfq_data.trigger_window_minutes,
             extension_duration_minutes=rfq_data.extension_duration_minutes,
             extension_trigger_type=rfq_data.extension_trigger_type,
-            created_at=datetime.utcnow()
+            created_at=now
         )
         db.add(db_rfq)
         db.commit()
@@ -109,9 +137,13 @@ def create_rfq(rfq_data: RFQCreateRequest, db: Session = Depends(get_db)):
 @router.get("/", response_model=List[RFQListItemSchema])
 def list_rfqs(db: Session = Depends(get_db)):
     try:
+        now = datetime.utcnow()
         rfqs = db.query(RFQ).all()
+        any_status_updated = False
         result = []
         for rfq in rfqs:
+            if sync_rfq_status(rfq, db, now):
+                any_status_updated = True
             lowest_bid = db.query(Bid).filter(Bid.rfq_id == rfq.id).order_by(Bid.total_charges.asc()).first()
             result.append(RFQListItemSchema(
                 id=rfq.id,
@@ -122,6 +154,10 @@ def list_rfqs(db: Session = Depends(get_db)):
                 forced_close_time=rfq.forced_close_time,
                 lowest_bid=lowest_bid.total_charges if lowest_bid else None
             ))
+
+        if any_status_updated:
+            db.commit()
+
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to list RFQs: {str(e)}")
@@ -130,10 +166,17 @@ def list_rfqs(db: Session = Depends(get_db)):
 @router.get("/{rfq_id}", response_model=RFQDetailSchema)
 def get_rfq(rfq_id: int, db: Session = Depends(get_db)):
     try:
+        now = datetime.utcnow()
         rfq = db.query(RFQ).filter(RFQ.id == rfq_id).first()
         if not rfq:
             raise HTTPException(status_code=404, detail="RFQ not found")
+
+        if sync_rfq_status(rfq, db, now):
+            db.commit()
+
         return rfq_detail_response(rfq, db)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get RFQ: {str(e)}")
 
