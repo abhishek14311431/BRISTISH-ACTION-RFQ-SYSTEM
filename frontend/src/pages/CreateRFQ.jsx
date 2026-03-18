@@ -60,15 +60,22 @@ const CreateRFQ = () => {
       await createRFQ(payload);
       navigate("/");
     } catch (error) {
-      setErrors({ submit: error.response?.data?.detail || "Failed to create RFQ." });
+      const detail = error.response?.data?.detail;
+      const submitMessage = Array.isArray(detail)
+        ? detail.map((item) => item?.msg || JSON.stringify(item)).join(" | ")
+        : typeof detail === "string"
+          ? detail
+          : "Failed to create RFQ.";
+      setErrors({ submit: submitMessage });
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div style={{ backgroundColor: "#f1f5f9", minHeight: "100vh", padding: "3rem 1rem" }}>
-      <div style={{ maxWidth: "56rem", margin: "0 auto" }}>
+    <div className="w-full overflow-x-hidden" style={{ backgroundColor: "transparent", minHeight: "100vh", padding: "3rem 0" }}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" style={{ maxWidth: "80rem", margin: "0 auto" }}>
+        <div style={{ maxWidth: "56rem", margin: "0 auto" }}>
         {/* Header */}
         <div style={{ marginBottom: "2rem" }}>
           <h1 style={{ fontSize: "2.25rem", fontWeight: "bold", color: "#1e3a5f", marginBottom: "0.5rem" }}>
@@ -88,7 +95,7 @@ const CreateRFQ = () => {
                 <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "2rem", height: "2rem", borderRadius: "50%", backgroundColor: "#dbeafe", color: "#2563eb", fontWeight: "bold" }}>1</span>
                 <span>Basic Information</span>
               </h3>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "1rem" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "1rem" }}>
                 <div>
                   <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", color: "#374151", marginBottom: "0.5rem" }}>RFQ Name *</label>
                   <input
@@ -143,9 +150,9 @@ const CreateRFQ = () => {
                 <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "2rem", height: "2rem", borderRadius: "50%", backgroundColor: "#dcfce7", color: "#16a34a", fontWeight: "bold" }}>2</span>
                 <span>📅 Timeline</span>
               </h3>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "1rem" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem" }}>
                 <div>
-                  <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", color: "#374151", marginBottom: "0.5rem" }}>Bid Start Date & Time *</label>
+                  <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: "600", color: "#374151", marginBottom: "0.5rem", lineHeight: 1.3 }}>Bid Start Date & Time *</label>
                   <input
                     type="datetime-local"
                     name="bid_start_time"
@@ -166,7 +173,7 @@ const CreateRFQ = () => {
                   {errors.bid_start_time && <p style={{ color: "#dc2626", fontSize: "0.875rem", marginTop: "0.25rem" }}>⚠️ {errors.bid_start_time}</p>}
                 </div>
                 <div>
-                  <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", color: "#374151", marginBottom: "0.5rem" }}>Bid Close Date & Time *</label>
+                  <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: "600", color: "#374151", marginBottom: "0.5rem", lineHeight: 1.3 }}>Bid Close Date & Time *</label>
                   <input
                     type="datetime-local"
                     name="bid_close_time"
@@ -186,7 +193,7 @@ const CreateRFQ = () => {
                   />
                 </div>
                 <div>
-                  <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", color: "#374151", marginBottom: "0.5rem" }}>Forced Close Date & Time *</label>
+                  <label style={{ display: "block", fontSize: "0.8125rem", fontWeight: "600", color: "#374151", marginBottom: "0.5rem", lineHeight: 1.3 }}>Forced Close Date & Time *</label>
                   <input
                     type="datetime-local"
                     name="forced_close_time"
@@ -238,7 +245,7 @@ const CreateRFQ = () => {
                 <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "2rem", height: "2rem", borderRadius: "50%", backgroundColor: "#f3e8ff", color: "#7c3aed", fontWeight: "bold" }}>3</span>
                 <span>⚙️ Extension Settings</span>
               </h3>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "1rem" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem" }}>
                 <div>
                   <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", color: "#374151", marginBottom: "0.5rem" }}>Trigger Window (min) *</label>
                   <input
@@ -318,7 +325,7 @@ const CreateRFQ = () => {
             )}
 
             {/* Buttons */}
-            <div style={{ display: "flex", gap: "1rem", paddingTop: "1rem" }}>
+            <div style={{ display: "flex", gap: "1rem", paddingTop: "1rem", flexWrap: "wrap" }}>
               <button
                 type="submit"
                 style={{
@@ -360,6 +367,7 @@ const CreateRFQ = () => {
               </button>
             </div>
           </form>
+        </div>
         </div>
       </div>
     </div>

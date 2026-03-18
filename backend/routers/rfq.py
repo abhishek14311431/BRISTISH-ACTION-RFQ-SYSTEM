@@ -100,6 +100,9 @@ def create_rfq(rfq: RFQCreateSchema, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(db_rfq)
         return rfq_detail_response(db_rfq, db)
+    except HTTPException:
+        db.rollback()
+        raise
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to create RFQ: {str(e)}")

@@ -150,8 +150,8 @@ const AuctionDetail = () => {
   }
 
   return (
-    <div style={{ backgroundColor: "#f1f5f9", minHeight: "100vh", padding: "3rem 1rem" }}>
-      <div style={{ maxWidth: "80rem", margin: "0 auto" }}>
+    <div className="w-full overflow-x-hidden" style={{ backgroundColor: "transparent", minHeight: "100vh", padding: "3rem 0" }}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" style={{ maxWidth: "80rem", margin: "0 auto" }}>
         {/* Back Button */}
         <button
           onClick={() => navigate("/")}
@@ -166,8 +166,8 @@ const AuctionDetail = () => {
           <div style={{ height: "8px", background: "linear-gradient(to right, #2563eb, #06b6d4, #2563eb)" }}></div>
           <div style={{ padding: "2rem" }}>
             <div style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", marginBottom: "1.5rem", gap: "1rem" }}>
-              <div>
-                <h1 style={{ fontSize: "2.25rem", fontWeight: "bold", color: "#1e3a5f", marginBottom: "0.5rem" }}>{rfq.name}</h1>
+              <div style={{ minWidth: 0 }}>
+                <h1 style={{ fontSize: "2.25rem", fontWeight: "bold", color: "#1e3a5f", marginBottom: "0.5rem", overflowWrap: "anywhere" }}>{rfq.name}</h1>
                 <p style={{ color: "#64748b", fontFamily: "monospace" }}>📌 Reference: {rfq.reference_id}</p>
               </div>
               {statusBadge(rfq.status)}
@@ -201,22 +201,22 @@ const AuctionDetail = () => {
         </div>
 
         {/* Config & Timeline Card */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "1.5rem", marginBottom: "2rem" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "1.5rem", marginBottom: "2rem" }}>
           {/* Configuration */}
           <div style={{ backgroundColor: "#ffffff", borderRadius: "0.75rem", boxShadow: "0 10px 15px rgba(0,0,0,0.1)", padding: "1.5rem", borderLeft: "4px solid #7c3aed" }}>
             <h3 style={{ fontSize: "1.125rem", fontWeight: "bold", color: "#1e3a5f", marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
               <span>⚙️ Auction Configuration</span>
             </h3>
             <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "0.5rem", borderBottom: "1px solid #e5e7eb" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.75rem", flexWrap: "wrap", paddingBottom: "0.5rem", borderBottom: "1px solid #e5e7eb" }}>
                 <span style={{ color: "#64748b", fontWeight: "500" }}>Trigger Window</span>
                 <span style={{ fontFamily: "monospace", fontWeight: "bold", color: "#1f2937" }}>{rfq.trigger_window_minutes} minutes</span>
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "0.5rem", borderBottom: "1px solid #e5e7eb" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.75rem", flexWrap: "wrap", paddingBottom: "0.5rem", borderBottom: "1px solid #e5e7eb" }}>
                 <span style={{ color: "#64748b", fontWeight: "500" }}>Extension Duration</span>
                 <span style={{ fontFamily: "monospace", fontWeight: "bold", color: "#1f2937" }}>{rfq.extension_duration_minutes} minutes</span>
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
                 <span style={{ color: "#64748b", fontWeight: "500" }}>Trigger Type</span>
                 <span style={{ fontFamily: "monospace", fontWeight: "bold", color: "#2563eb", backgroundColor: "#dbeafe", padding: "0.25rem 0.5rem", borderRadius: "0.25rem" }}>{rfq.extension_trigger_type}</span>
               </div>
@@ -281,7 +281,7 @@ const AuctionDetail = () => {
               </h2>
 
               <form onSubmit={handleBidSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "1rem" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem" }}>
                   <div>
                     <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", color: "#374151", marginBottom: "0.5rem" }}>Carrier Name *</label>
                     <input
@@ -329,7 +329,7 @@ const AuctionDetail = () => {
 
                 <div style={{ borderBottom: "2px solid #e2e8f0", paddingBottom: "1rem" }}>
                   <h3 style={{ fontWeight: "600", color: "#1f2937", marginBottom: "1rem" }}>💷 Charges Breakdown</h3>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "1rem" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem" }}>
                     <div>
                       <label style={{ display: "block", fontSize: "0.875rem", fontWeight: "600", color: "#374151", marginBottom: "0.5rem" }}>Freight Charges (£) *</label>
                       <input
