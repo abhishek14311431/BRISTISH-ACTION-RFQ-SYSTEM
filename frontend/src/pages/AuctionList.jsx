@@ -83,12 +83,6 @@ export default function AuctionList() {
               Manage and monitor all British Auction RFQs
             </p>
           </div>
-          <button onClick={() => navigate('/create')} style={{
-            background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-            color: 'white', border: 'none', padding: '10px 20px',
-            borderRadius: '10px', fontWeight: '600', cursor: 'pointer',
-            fontSize: '14px', whiteSpace: 'nowrap'
-          }}>✏️ Create New RFQ</button>
         </div>
 
         {/* Stats Row */}

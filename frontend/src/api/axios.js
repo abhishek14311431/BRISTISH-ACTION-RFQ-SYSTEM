@@ -29,7 +29,7 @@ const api = axios.create({
 
 // API helper functions
 export const getAllRFQs = async () => {
-  const res = await api.get("/rfq/");
+  const res = await api.get("/api/rfq/");
   if (!Array.isArray(res.data)) {
     throw new Error("RFQ list response is not an array");
   }
@@ -37,17 +37,17 @@ export const getAllRFQs = async () => {
 };
 
 export const getRFQDetail = async (rfq_id) => {
-  const res = await api.get(`/rfq/${rfq_id}`);
+  const res = await api.get(`/api/rfq/${rfq_id}`);
   return res.data;
 };
 
 export const createRFQ = async (data) => {
-  const res = await api.post("/rfq/", data);
+  const res = await api.post("/api/rfq/", data);
   return res.data;
 };
 
 export const submitBid = async (rfq_id, data) => {
-  const res = await api.post(`/bids/${rfq_id}/`, data);
+  const res = await api.post(`/api/bids/${rfq_id}/`, data);
   return res.data;
 };
 

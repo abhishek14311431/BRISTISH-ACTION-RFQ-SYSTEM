@@ -1,102 +1,149 @@
-import React, { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getRFQDetail, submitBid } from "../api/axios";
- 
-const formatDateTime = (dt) => {
-  if (!dt) return "";
-  return new Date(dt).toLocaleString("en-US", {
+
+function formatDateTime(datetime) {
+  if (!datetime) return "N/A";
+  return new Date(datetime).toLocaleString("en-US", {
     month: "short",
-    day: "2-digit",
+    day: "numeric",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
     hour12: true,
   });
-};
+}
 
-const CountUpNumber = ({ value }) => {
-  const [display, setDisplay] = useState(0);
-
-  useEffect(() => {
-    let animationFrame;
-    const start = performance.now();
-    const duration = 500;
-
-    const tick = (now) => {
-      const progress = Math.min((now - start) / duration, 1);
-      setDisplay(value * progress);
-      if (progress < 1) {
-        animationFrame = requestAnimationFrame(tick);
-      }
-    };
-
-    animationFrame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(animationFrame);
-  }, [value]);
-
+function StatusBadge({ status }) {
+  const config = {
+    active: {
+      bg: "rgba(74,222,128,0.15)",
+      border: "rgba(74,222,128,0.4)",
+      color: "#4ade80",
+      label: "● Active",
+    },
+    closed: {
+      bg: "rgba(148,163,184,0.15)",
+      border: "rgba(148,163,184,0.4)",
+      color: "#94a3b8",
+      label: "● Closed",
+    },
+    force_closed: {
+      bg: "rgba(248,113,113,0.15)",
+      border: "rgba(248,113,113,0.4)",
+      color: "#f87171",
+      label: "● Force Closed",
+    },
+  };
+  const s = config[status] || config.closed;
   return (
-    <span className="lowest-bid">£{display.toFixed(2)}</span>
-  );
-};
-
-const StatusBadge = ({ status }) => {
-  if (status === "active") {
-    return (
-      <span className="status-pill status-active">
-        <span className="active-dot"></span>
-        Active
-      </span>
-    );
-  }
-
-  if (status === "force_closed") {
-    return <span className="status-pill status-force">Force Closed</span>;
-  }
-
-  return <span className="status-pill status-closed">Closed</span>;
-};
-
-const CountdownTimer = ({ endTime }) => {
-  const [secondsLeft, setSecondsLeft] = useState(0);
-
-  useEffect(() => {
-    const endTs = new Date(endTime).getTime();
-
-    const interval = setInterval(() => {
-      const diff = Math.max(0, Math.floor((endTs - Date.now()) / 1000));
-      setSecondsLeft(diff);
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [endTime]);
-
-  const hours = String(Math.floor(secondsLeft / 3600)).padStart(2, "0");
-  const minutes = String(Math.floor((secondsLeft % 3600) / 60)).padStart(2, "0");
-  const seconds = String(secondsLeft % 60).padStart(2, "0");
-  const warning = secondsLeft > 0 && secondsLeft < 300;
-
-  return (
-    <span className={warning ? "warning-countdown text-5xl md:text-6xl font-extrabold tracking-widest" : "text-white text-5xl md:text-6xl font-extrabold tracking-widest"}>
-      {hours}:{minutes}:{seconds}
+    <span
+      style={{
+        background: s.bg,
+        border: `1px solid ${s.border}`,
+        color: s.color,
+        padding: "4px 12px",
+        borderRadius: "20px",
+        fontSize: "13px",
+        fontWeight: "600",
+      }}
+    >
+      {s.label}
     </span>
   );
+}
+
+function RankBadge({ rank }) {
+  const config = {
+    1: { bg: "linear-gradient(135deg, #f59e0b, #d97706)", label: "\uD83E\uDD47 L1" },
+    2: { bg: "linear-gradient(135deg, #94a3b8, #64748b)", label: "\uD83E\uDD48 L2" },
+    3: { bg: "linear-gradient(135deg, #cd7c2f, #92400e)", label: "\uD83E\uDD49 L3" },
+  };
+  const c = config[rank] || { bg: "rgba(255,255,255,0.1)", label: `L${rank}` };
+  return (
+    <span
+      style={{
+        background: c.bg,
+        color: "white",
+        padding: "4px 10px",
+        borderRadius: "8px",
+        fontSize: "12px",
+        fontWeight: "700",
+      }}
+    >
+      {c.label}
+    </span>
+  );
+}
+
+function Countdown({ targetTime }) {
+  const [timeLeft, setTimeLeft] = useState("");
+  const [isUrgent, setIsUrgent] = useState(false);
+
+  useEffect(() => {
+    const update = () => {
+      const now = new Date();
+      const target = new Date(targetTime);
+      const diff = target - now;
+      if (diff <= 0) {
+        setTimeLeft("00:00:00");
+        return;
+      }
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      setIsUrgent(diff < 300000);
+      setTimeLeft(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`);
+    };
+    update();
+    const i = setInterval(update, 1000);
+    return () => clearInterval(i);
+  }, [targetTime]);
+
+  return (
+    <div style={{ textAlign: "center" }}>
+      <div
+        style={{
+          fontSize: "3rem",
+          fontWeight: "800",
+          letterSpacing: "4px",
+          color: isUrgent ? "#f87171" : "white",
+          animation: isUrgent ? "pulse 1s infinite" : "none",
+        }}
+      >
+        {timeLeft}
+      </div>
+      <div style={{ color: "rgba(255,255,255,0.5)", fontSize: "13px", marginTop: "8px" }}>
+        Closes at {formatDateTime(targetTime)}
+      </div>
+    </div>
+  );
+}
+
+const glassCard = {
+  background: "rgba(255,255,255,0.06)",
+  backdropFilter: "blur(16px)",
+  WebkitBackdropFilter: "blur(16px)",
+  border: "1px solid rgba(255,255,255,0.1)",
+  borderRadius: "20px",
+  padding: "24px",
+  marginBottom: "20px",
 };
 
-const getRankClass = (rank) => {
-  if (rank === 1) return "rank-l1";
-  if (rank === 2) return "rank-l2";
-  if (rank === 3) return "rank-l3";
-  return "rank-other";
+const inputStyle = {
+  width: "100%",
+  padding: "10px 14px",
+  background: "rgba(255,255,255,0.07)",
+  border: "1px solid rgba(255,255,255,0.15)",
+  borderRadius: "10px",
+  color: "white",
+  fontSize: "14px",
+  outline: "none",
+  boxSizing: "border-box",
+  colorScheme: "dark",
 };
 
-const getRankLabel = (rank) => {
-  if (rank === 1) return "🥇 L1";
-  if (rank === 2) return "🥈 L2";
-  if (rank === 3) return "🥉 L3";
-  return `#${rank}`;
-};
-
-const AuctionDetail = () => {
+export default function AuctionDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [rfq, setRfq] = useState(null);
@@ -109,53 +156,37 @@ const AuctionDetail = () => {
     transit_time: "",
     quote_validity: "",
   });
-  const [bidError, setBidError] = useState("");
-  const [bidSuccess, setBidSuccess] = useState("");
+  const [bidMsg, setBidMsg] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-  const [toast, setToast] = useState(null);
 
-  const fetchDetail = async () => {
-    setLoading(true);
+  const fetchRFQ = async () => {
     try {
       const data = await getRFQDetail(id);
       setRfq(data);
-    } catch (e) {
-      setRfq(null);
-    } finally {
-      setLoading(false);
+    } catch (err) {
+      console.error(err);
     }
+    setLoading(false);
   };
 
   useEffect(() => {
-    fetchDetail();
-    const interval = setInterval(fetchDetail, 15000);
-    return () => clearInterval(interval);
+    fetchRFQ();
+    const i = setInterval(fetchRFQ, 15000);
+    return () => clearInterval(i);
   }, [id]);
 
-  const handleBidChange = (e) => {
-    const { name, value } = e.target;
-    setBidForm((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleBidSubmit = async (e) => {
-    e.preventDefault();
-    setBidError("");
-    setBidSuccess("");
+  const handleBidSubmit = async () => {
     setSubmitting(true);
-
+    setBidMsg(null);
     try {
-      const payload = {
+      await submitBid(id, {
         ...bidForm,
-        freight_charges: Number(bidForm.freight_charges),
-        origin_charges: Number(bidForm.origin_charges),
-        destination_charges: Number(bidForm.destination_charges),
-        transit_time: Number(bidForm.transit_time),
-        quote_validity: bidForm.quote_validity,
-      };
-      await submitBid(id, payload);
-      setBidSuccess("Bid submitted successfully!");
-      setToast({ type: "success", message: "Bid submitted successfully." });
-      setTimeout(() => setToast(null), 3000);
+        freight_charges: parseFloat(bidForm.freight_charges),
+        origin_charges: parseFloat(bidForm.origin_charges),
+        destination_charges: parseFloat(bidForm.destination_charges),
+        transit_time: parseInt(bidForm.transit_time),
+      });
+      setBidMsg({ type: "success", text: "✅ Bid submitted successfully!" });
       setBidForm({
         carrier_name: "",
         freight_charges: "",
@@ -164,231 +195,302 @@ const AuctionDetail = () => {
         transit_time: "",
         quote_validity: "",
       });
-      fetchDetail();
-    } catch (error) {
-      const message = error.response?.data?.detail || "Failed to submit bid.";
-      setBidError(message);
-      setToast({ type: "error", message });
-      setTimeout(() => setToast(null), 3000);
-    } finally {
-      setSubmitting(false);
+      fetchRFQ();
+    } catch (err) {
+      setBidMsg({ type: "error", text: `❌ ${err.response?.data?.detail || "Failed to submit bid"}` });
     }
+    setSubmitting(false);
   };
 
-  if (loading) {
+  if (loading)
     return (
-      <div className="w-full overflow-x-hidden page-enter">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="glass-card p-12 text-center">
-            <div className="spinner mx-auto"></div>
-            <p className="mt-4 text-slate-200">Loading auction details...</p>
-          </div>
-        </div>
+      <div style={{ paddingTop: "80px", textAlign: "center", color: "white", padding: "120px 24px" }}>
+        ⏳ Loading auction details...
       </div>
     );
-  }
 
-  if (!rfq) {
+  if (!rfq)
     return (
-      <div className="w-full overflow-x-hidden page-enter">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="glass-card p-12 text-center text-slate-200">
-            <div className="text-5xl">❌</div>
-            <h2 className="text-2xl font-bold mt-3 text-white">RFQ Not Found</h2>
-            <button onClick={() => navigate("/")} className="mt-3 text-slate-200 hover:underline">← Back to Auctions</button>
-          </div>
-        </div>
+      <div style={{ paddingTop: "80px", textAlign: "center", color: "white", padding: "120px 24px" }}>
+        ❌ RFQ not found
       </div>
     );
-  }
 
-  const events = [...(rfq.auction_events || [])].sort(
-    (a, b) => new Date(b.triggered_at).getTime() - new Date(a.triggered_at).getTime()
-  );
+  const triggerLabels = {
+    bid_received: "Bid Received in Last X Minutes",
+    any_rank_change: "Any Rank Change",
+    l1_rank_change: "L1 Rank Change",
+  };
+
+  const eventIcons = {
+    bid_submitted: { icon: "🔵", border: "#3b82f6" },
+    time_extended: { icon: "🟠", border: "#f59e0b" },
+    auction_closed: { icon: "⚫", border: "#94a3b8" },
+  };
 
   return (
-    <div className="w-full overflow-x-hidden page-enter">
-      {toast && <div className={`toast ${toast.type === "success" ? "toast-success" : "toast-error"}`}>{toast.type === "success" ? "✅" : "❌"} {toast.message}</div>}
+    <div style={{ minHeight: "100vh", paddingTop: "80px", overflowX: "hidden" }}>
+      <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "24px 16px", boxSizing: "border-box" }}>
+        {/* Back Button */}
+        <button
+          onClick={() => navigate("/")}
+          style={{
+            background: "transparent",
+            border: "1px solid rgba(255,255,255,0.2)",
+            color: "rgba(255,255,255,0.7)",
+            padding: "8px 16px",
+            borderRadius: "8px",
+            cursor: "pointer",
+            marginBottom: "20px",
+            fontSize: "14px",
+          }}
+        >
+          ← Back to Auctions
+        </button>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-7 space-y-6">
-        <section className="glass-card p-6 card-enter">
-          <div className="flex items-start justify-between gap-4 flex-wrap">
+        {/* RFQ Info Card */}
+        <div style={glassCard}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+              flexWrap: "wrap",
+              gap: "12px",
+              marginBottom: "20px",
+            }}
+          >
             <div>
-              <h1 className="text-white text-3xl md:text-4xl font-extrabold break-words">{rfq.name}</h1>
-              <p className="text-slate-300 mt-1">Reference ID: {rfq.reference_id}</p>
+              <h1 style={{ color: "white", margin: "0 0 4px", fontSize: "1.6rem", fontWeight: "700" }}>{rfq.name}</h1>
+              <p style={{ color: "rgba(255,255,255,0.5)", margin: 0, fontSize: "14px" }}>Reference ID: {rfq.reference_id}</p>
             </div>
             <StatusBadge status={rfq.status} />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-5">
-            <div className="glass-card p-4">
-              <p className="text-slate-300 text-sm">Pickup Date</p>
-              <p className="text-white font-semibold mt-1">{formatDateTime(rfq.pickup_date)}</p>
-            </div>
-            <div className="glass-card p-4">
-              <p className="text-slate-300 text-sm">Trigger Window</p>
-              <p className="text-white font-semibold mt-1">{rfq.trigger_window_minutes} min</p>
-            </div>
-            <div className="glass-card p-4">
-              <p className="text-slate-300 text-sm">Extension Duration</p>
-              <p className="text-white font-semibold mt-1">{rfq.extension_duration_minutes} min</p>
-            </div>
-            <div className="glass-card p-4">
-              <p className="text-slate-300 text-sm">Trigger Type</p>
-              <p className="text-white font-semibold mt-1 break-words">{rfq.extension_trigger_type}</p>
-            </div>
-            <div className="glass-card p-4 sm:col-span-2">
-              <p className="text-slate-300 text-sm">Bid Start</p>
-              <p className="text-white font-semibold mt-1">{formatDateTime(rfq.bid_start_time)}</p>
-            </div>
-            <div className="glass-card p-4 sm:col-span-2">
-              <p className="text-slate-300 text-sm">Force Close</p>
-              <p className="text-white font-semibold mt-1">{formatDateTime(rfq.forced_close_time)}</p>
-            </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "16px" }}>
+            {[
+              { label: "Bid Start", value: formatDateTime(rfq.bid_start_time) },
+              { label: "Bid Close", value: formatDateTime(rfq.bid_close_time) },
+              { label: "Forced Close", value: formatDateTime(rfq.forced_close_time) },
+              { label: "Pickup Date", value: rfq.pickup_date },
+              { label: "Trigger Window", value: `${rfq.trigger_window_minutes} min` },
+              { label: "Extension", value: `${rfq.extension_duration_minutes} min` },
+              { label: "Trigger Type", value: triggerLabels[rfq.extension_trigger_type] || rfq.extension_trigger_type },
+            ].map((item, i) => (
+              <div
+                key={i}
+                style={{
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  borderRadius: "12px",
+                  padding: "12px 16px",
+                }}
+              >
+                <div
+                  style={{
+                    color: "rgba(255,255,255,0.4)",
+                    fontSize: "11px",
+                    fontWeight: "600",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                    marginBottom: "4px",
+                  }}
+                >
+                  {item.label}
+                </div>
+                <div style={{ color: "white", fontSize: "14px", fontWeight: "500" }}>{item.value}</div>
+              </div>
+            ))}
           </div>
-        </section>
+        </div>
 
-        <section className="glass-card p-8 text-center card-enter">
-          <p className="text-slate-300 text-sm">Bid closes at {formatDateTime(rfq.bid_close_time)}</p>
-          <div className="mt-3">
-            <CountdownTimer endTime={rfq.bid_close_time} />
-          </div>
-          <p className="text-slate-400 mt-4 text-sm">Forced close: {formatDateTime(rfq.forced_close_time)}</p>
-        </section>
-
-        <section className="glass-card p-6 card-enter">
-          <h2 className="text-white text-2xl font-bold">🏆 Live Bid Rankings</h2>
-          <div className="mt-4 overflow-hidden">
-            {rfq.bids?.length ? (
-              <table className="w-full text-sm">
-                <thead className="table-head">
-                  <tr>
-                    <th className="text-left px-3 py-2 text-white">Rank</th>
-                    <th className="text-left px-3 py-2 text-white">Carrier</th>
-                    <th className="text-left px-3 py-2 text-white">Freight</th>
-                    <th className="text-left px-3 py-2 text-white">Origin</th>
-                    <th className="text-left px-3 py-2 text-white">Destination</th>
-                    <th className="text-left px-3 py-2 text-white">Total</th>
-                    <th className="text-left px-3 py-2 text-white">Submitted</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rfq.bids.map((bid, idx) => (
-                    <tr
-                      key={bid.id}
-                      className={`${idx === 0 ? "l1-row-glow" : "table-row"} row-enter ${idx === 0 ? "row-top-enter" : ""}`}
-                      style={{ animationDelay: `${idx * 70}ms` }}
-                    >
-                      <td className="px-3 py-3">
-                        <span className={`rank-badge ${getRankClass(bid.rank)}`}>{getRankLabel(bid.rank)}</span>
-                      </td>
-                      <td className="px-3 py-3 text-slate-100 font-medium">{bid.carrier_name}</td>
-                      <td className="px-3 py-3 text-slate-200">£{Number(bid.freight_charges).toFixed(2)}</td>
-                      <td className="px-3 py-3 text-slate-200">£{Number(bid.origin_charges).toFixed(2)}</td>
-                      <td className="px-3 py-3 text-slate-200">£{Number(bid.destination_charges).toFixed(2)}</td>
-                      <td className="px-3 py-3 font-bold">
-                        <CountUpNumber value={Number(bid.total_charges)} />
-                      </td>
-                      <td className="px-3 py-3 text-slate-300">{formatDateTime(bid.submitted_at)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <p className="text-slate-300">No bids submitted yet.</p>
-            )}
-          </div>
-        </section>
-
+        {/* Countdown Timer */}
         {rfq.status === "active" && (
-          <section className="glass-card p-6 card-enter">
-            <h2 className="text-white text-2xl font-bold">Submit Your Bid</h2>
-
-            <form className="mt-4 space-y-4" onSubmit={handleBidSubmit}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-slate-100 text-sm font-medium">Carrier Name</label>
-                  <input className="glass-input mt-1" name="carrier_name" value={bidForm.carrier_name} onChange={handleBidChange} required />
-                </div>
-                <div>
-                  <label className="text-slate-100 text-sm font-medium">Transit Time (days)</label>
-                  <input className="glass-input mt-1" type="number" min="1" name="transit_time" value={bidForm.transit_time} onChange={handleBidChange} required />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="text-slate-100 text-sm font-medium">Freight Charges</label>
-                  <input className="glass-input mt-1" type="number" min="0" step="0.01" name="freight_charges" value={bidForm.freight_charges} onChange={handleBidChange} required />
-                </div>
-                <div>
-                  <label className="text-slate-100 text-sm font-medium">Origin Charges</label>
-                  <input className="glass-input mt-1" type="number" min="0" step="0.01" name="origin_charges" value={bidForm.origin_charges} onChange={handleBidChange} required />
-                </div>
-                <div>
-                  <label className="text-slate-100 text-sm font-medium">Destination Charges</label>
-                  <input className="glass-input mt-1" type="number" min="0" step="0.01" name="destination_charges" value={bidForm.destination_charges} onChange={handleBidChange} required />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-slate-100 text-sm font-medium">Quote Validity</label>
-                <input className="glass-input mt-1" type="date" name="quote_validity" value={bidForm.quote_validity} onChange={handleBidChange} required />
-              </div>
-
-              {bidError && <p className="field-error">{bidError}</p>}
-              {bidSuccess && <p className="text-emerald-300 font-semibold">✅ {bidSuccess}</p>}
-
-              <button type="submit" className="w-full gradient-btn rounded-xl py-4 font-bold text-white flex items-center justify-center gap-2" disabled={submitting}>
-                {submitting ? (
-                  <>
-                    <span className="spinner"></span>
-                    Submitting...
-                  </>
-                ) : (
-                  "Submit Bid"
-                )}
-              </button>
-            </form>
-          </section>
+          <div style={{ ...glassCard, textAlign: "center", borderColor: "rgba(245,158,11,0.3)" }}>
+            <div
+              style={{
+                color: "rgba(255,255,255,0.5)",
+                fontSize: "13px",
+                marginBottom: "12px",
+                textTransform: "uppercase",
+                letterSpacing: "1px",
+              }}
+            >
+              ⏱ Time Remaining
+            </div>
+            <Countdown targetTime={rfq.bid_close_time} />
+            <div style={{ color: "rgba(255,255,255,0.4)", fontSize: "12px", marginTop: "8px" }}>
+              Forced close: {formatDateTime(rfq.forced_close_time)}
+            </div>
+          </div>
         )}
 
-        <section className="glass-card p-6 card-enter">
-          <h2 className="text-white text-2xl font-bold">🕒 Activity Log</h2>
-
-          <div className="mt-4 space-y-3">
-            {events.length ? (
-              events.map((event, idx) => {
-                const isBid = event.event_type === "bid_submitted";
-                const isExtend = event.event_type === "time_extended";
-                const rowClass = isBid ? "activity-bid" : isExtend ? "activity-extend" : "activity-close";
-
-                let message = "Auction closed";
-                if (isBid) {
-                  message = event.description || "Bid submitted";
-                } else if (isExtend) {
-                  message = `Auction extended: ${formatDateTime(event.old_close_time)} → ${formatDateTime(event.new_close_time)}`;
-                }
-
-                const icon = isBid ? "🔵" : isExtend ? "🟠" : "⚫";
-
-                return (
-                  <div key={event.id} className={`activity-row ${rowClass} row-enter`} style={{ animationDelay: `${idx * 70}ms` }}>
-                    <p className="text-slate-100">
-                      {icon} {message}
-                    </p>
-                    <p className="text-slate-400 text-xs mt-1">{formatDateTime(event.triggered_at)}</p>
-                  </div>
-                );
-              })
+        {/* Two Column Layout */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+          {/* Left: Bid Leaderboard */}
+          <div style={glassCard}>
+            <h2 style={{ color: "white", margin: "0 0 16px", fontSize: "1rem", fontWeight: "700" }}>🏆 Live Bid Rankings</h2>
+            {rfq.bids && rfq.bids.length > 0 ? (
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
+                  <thead>
+                    <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
+                      {["Rank", "Carrier", "Freight", "Origin", "Dest", "Total", "Transit"].map((h) => (
+                        <th
+                          key={h}
+                          style={{
+                            padding: "8px 10px",
+                            textAlign: "left",
+                            color: "rgba(255,255,255,0.5)",
+                            fontWeight: "600",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rfq.bids
+                      .sort((a, b) => a.total_charges - b.total_charges)
+                      .map((bid, i) => (
+                        <tr
+                          key={bid.id}
+                          style={{
+                            borderBottom: "1px solid rgba(255,255,255,0.05)",
+                            background: bid.rank === 1 ? "rgba(74,222,128,0.06)" : "transparent",
+                          }}
+                        >
+                          <td style={{ padding: "10px" }}>
+                            <RankBadge rank={bid.rank} />
+                          </td>
+                          <td style={{ padding: "10px", color: "white", fontWeight: "600" }}>{bid.carrier_name}</td>
+                          <td style={{ padding: "10px", color: "rgba(255,255,255,0.7)" }}>${bid.freight_charges}</td>
+                          <td style={{ padding: "10px", color: "rgba(255,255,255,0.7)" }}>${bid.origin_charges}</td>
+                          <td style={{ padding: "10px", color: "rgba(255,255,255,0.7)" }}>${bid.destination_charges}</td>
+                          <td style={{ padding: "10px", color: "#4ade80", fontWeight: "700" }}>${bid.total_charges}</td>
+                          <td style={{ padding: "10px", color: "rgba(255,255,255,0.7)" }}>{bid.transit_time}d</td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
             ) : (
-              <p className="text-slate-300">No activity events yet.</p>
+              <div style={{ textAlign: "center", padding: "40px", color: "rgba(255,255,255,0.3)" }}>No bids yet</div>
             )}
           </div>
-        </section>
+
+          {/* Right: Activity Log */}
+          <div style={glassCard}>
+            <h2 style={{ color: "white", margin: "0 0 16px", fontSize: "1rem", fontWeight: "700" }}>📋 Activity Log</h2>
+            <div style={{ maxHeight: "300px", overflowY: "auto" }}>
+              {rfq.events && rfq.events.length > 0 ? (
+                rfq.events.map((event, i) => {
+                  const cfg = eventIcons[event.event_type] || { icon: "⚪", border: "#94a3b8" };
+                  return (
+                    <div
+                      key={i}
+                      style={{
+                        borderLeft: `3px solid ${cfg.border}`,
+                        paddingLeft: "12px",
+                        marginBottom: "12px",
+                        paddingBottom: "12px",
+                        borderBottom: "1px solid rgba(255,255,255,0.05)",
+                      }}
+                    >
+                      <div style={{ color: "white", fontSize: "13px", fontWeight: "500" }}>
+                        {cfg.icon} {event.description}
+                      </div>
+                      {event.old_close_time && (
+                        <div style={{ color: "rgba(255,255,255,0.4)", fontSize: "11px", marginTop: "4px" }}>
+                          {formatDateTime(event.old_close_time)} → {formatDateTime(event.new_close_time)}
+                        </div>
+                      )}
+                      <div style={{ color: "rgba(255,255,255,0.3)", fontSize: "11px", marginTop: "4px" }}>{formatDateTime(event.triggered_at)}</div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div style={{ textAlign: "center", padding: "40px", color: "rgba(255,255,255,0.3)" }}>No activity yet</div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Submit Bid */}
+        {rfq.status === "active" && (
+          <div style={glassCard}>
+            <h2 style={{ color: "white", margin: "0 0 20px", fontSize: "1rem", fontWeight: "700" }}>💰 Submit Your Bid</h2>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px", marginBottom: "16px" }}>
+              {[
+                { key: "carrier_name", label: "Carrier Name", type: "text", placeholder: "e.g. DHL" },
+                { key: "freight_charges", label: "Freight Charges ($)", type: "number", placeholder: "0.00" },
+                { key: "origin_charges", label: "Origin Charges ($)", type: "number", placeholder: "0.00" },
+                { key: "destination_charges", label: "Destination Charges ($)", type: "number", placeholder: "0.00" },
+                { key: "transit_time", label: "Transit Time (days)", type: "number", placeholder: "5" },
+                { key: "quote_validity", label: "Quote Validity", type: "date", placeholder: "" },
+              ].map((field) => (
+                <div key={field.key}>
+                  <label
+                    style={{
+                      display: "block",
+                      color: "rgba(255,255,255,0.6)",
+                      fontSize: "12px",
+                      fontWeight: "600",
+                      marginBottom: "6px",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.5px",
+                    }}
+                  >
+                    {field.label}
+                  </label>
+                  <input
+                    type={field.type}
+                    placeholder={field.placeholder}
+                    style={inputStyle}
+                    value={bidForm[field.key]}
+                    onChange={(e) => setBidForm({ ...bidForm, [field.key]: e.target.value })}
+                  />
+                </div>
+              ))}
+            </div>
+
+            {bidMsg && (
+              <div
+                style={{
+                  padding: "12px 16px",
+                  borderRadius: "10px",
+                  marginBottom: "16px",
+                  background: bidMsg.type === "success" ? "rgba(74,222,128,0.1)" : "rgba(248,113,113,0.1)",
+                  border: `1px solid ${bidMsg.type === "success" ? "rgba(74,222,128,0.3)" : "rgba(248,113,113,0.3)"}`,
+                  color: bidMsg.type === "success" ? "#4ade80" : "#f87171",
+                  fontSize: "14px",
+                }}
+              >
+                {bidMsg.text}
+              </div>
+            )}
+
+            <button
+              onClick={handleBidSubmit}
+              disabled={submitting}
+              style={{
+                background: submitting ? "rgba(245,158,11,0.4)" : "linear-gradient(135deg, #f59e0b, #d97706)",
+                color: "white",
+                border: "none",
+                padding: "12px 32px",
+                borderRadius: "10px",
+                fontWeight: "700",
+                cursor: submitting ? "not-allowed" : "pointer",
+                fontSize: "14px",
+              }}
+            >
+              {submitting ? "⏳ Submitting..." : "💰 Submit Bid"}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
-};
-
-export default AuctionDetail;
+}
