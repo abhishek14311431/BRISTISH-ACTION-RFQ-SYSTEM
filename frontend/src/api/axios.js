@@ -1,7 +1,9 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://localhost:8000",
+  baseURL: window.location.origin.includes('github.dev') || window.location.origin.includes('app.github.dev')
+    ? `https://${window.location.host.replace('-3000', '-8000')}`
+    : "http://127.0.0.1:8000",
 });
 
 // API helper functions
