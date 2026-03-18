@@ -54,12 +54,15 @@ export default function CreateRFQ() {
       await createRFQ(payload);
       navigate('/');
     } catch (err) {
+      console.error('RFQ Creation Error:', err);
       const detail = err?.response?.data?.detail;
       const submitMessage = Array.isArray(detail)
         ? detail.map((item) => item?.msg || JSON.stringify(item)).join(' | ')
         : typeof detail === 'string'
           ? detail
-          : 'Failed to create RFQ. Please try again.';
+          : (err?.response?.status === 400 || err?.response?.status === 422)
+            ? 'Validation Error: Check your inputs.'
+            : 'Failed to create RFQ. Server might be unreachable or busy.';
       setErrors({ submit: submitMessage });
     }
     setLoading(false);
