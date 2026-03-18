@@ -4,6 +4,7 @@ from datetime import datetime
 from database import SessionLocal
 from models import RFQ, Bid, AuctionEvent
 from pydantic import BaseModel
+from timezone_util import get_indian_time_naive
 
 router = APIRouter(prefix="/bids", tags=["Bids"])
 
@@ -51,7 +52,7 @@ def list_bids():
 def submit_bid(rfq_id: int, bid: BidCreateSchema, db: Session = Depends(get_db)):
     try:
         rfq = db.query(RFQ).filter(RFQ.id == rfq_id).first()
-        now = datetime.utcnow()
+        now = get_indian_time_naive()
         if not rfq:
             raise HTTPException(status_code=404, detail="RFQ not found")
 

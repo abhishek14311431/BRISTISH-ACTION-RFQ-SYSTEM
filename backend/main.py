@@ -7,8 +7,8 @@ from routers import rfq, bids
 from services.auction_engine import AuctionEngine
 import os
 
-# Set timezone to British Time (Europe/London)
-os.environ['TZ'] = 'Europe/London'
+# Set timezone to Indian Standard Time (Asia/Kolkata)
+os.environ['TZ'] = 'Asia/Kolkata'
 import time
 time.tzset()
 

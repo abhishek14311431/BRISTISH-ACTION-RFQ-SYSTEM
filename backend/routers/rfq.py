@@ -7,7 +7,7 @@ from models import RFQ, Bid, AuctionEvent
 from schemas import RFQCreateRequest
 from pydantic import BaseModel
 from datetime import datetime
-from timezone_util import get_british_time_naive
+from timezone_util import get_indian_time_naive
 
 router = APIRouter(prefix="/rfq", tags=["RFQ"])
 
@@ -105,7 +105,7 @@ def create_rfq(rfq_data: RFQCreateRequest, db: Session = Depends(get_db)):
         if rfq_data.bid_start_time >= rfq_data.bid_close_time:
             raise HTTPException(status_code=400, detail="Bid start time must be before bid close time.")
         
-        now = get_british_time_naive()
+        now = get_indian_time_naive()
         db_rfq = RFQ(
             name=rfq_data.name,
             reference_id=rfq_data.reference_id,
@@ -137,7 +137,7 @@ def create_rfq(rfq_data: RFQCreateRequest, db: Session = Depends(get_db)):
 @router.get("/", response_model=List[RFQListItemSchema])
 def list_rfqs(db: Session = Depends(get_db)):
     try:
-        now = get_british_time_naive()
+        now = get_indian_time_naive()
         rfqs = db.query(RFQ).all()
         any_status_updated = False
         result = []
@@ -166,7 +166,7 @@ def list_rfqs(db: Session = Depends(get_db)):
 @router.get("/{rfq_id}", response_model=RFQDetailSchema)
 def get_rfq(rfq_id: int, db: Session = Depends(get_db)):
     try:
-        now = get_british_time_naive()
+        now = get_indian_time_naive()
         rfq = db.query(RFQ).filter(RFQ.id == rfq_id).first()
         if not rfq:
             raise HTTPException(status_code=404, detail="RFQ not found")
