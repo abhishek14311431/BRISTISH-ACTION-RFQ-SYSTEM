@@ -1,14 +1,38 @@
 import axios from "axios";
 
+const resolveApiBaseUrl = () => {
+  if (process.env.REACT_APP_API_BASE_URL) {
+    return process.env.REACT_APP_API_BASE_URL;
+  }
+
+  if (process.env.NODE_ENV === "development") {
+    return "";
+  }
+
+  const { protocol, hostname, host } = window.location;
+  const isCodespacesHost = hostname.endsWith("github.dev");
+
+  if (isCodespacesHost && host.includes("-3000")) {
+    return `${protocol}//${host.replace("-3000", "-8000")}`;
+  }
+
+  if (hostname === "localhost" || hostname === "127.0.0.1") {
+    return `${protocol}//${hostname}:8000`;
+  }
+
+  return `${protocol}//${hostname}:8000`;
+};
+
 const api = axios.create({
-  baseURL: window.location.origin.includes('github.dev') || window.location.origin.includes('app.github.dev')
-    ? `https://${window.location.host.replace('-3000', '-8000')}`
-    : "http://127.0.0.1:8000",
+  baseURL: resolveApiBaseUrl(),
 });
 
 // API helper functions
 export const getAllRFQs = async () => {
   const res = await api.get("/rfq/");
+  if (!Array.isArray(res.data)) {
+    throw new Error("RFQ list response is not an array");
+  }
   return res.data;
 };
 
@@ -23,7 +47,7 @@ export const createRFQ = async (data) => {
 };
 
 export const submitBid = async (rfq_id, data) => {
-  const res = await api.post(`/rfq/${rfq_id}/bid`, data);
+  const res = await api.post(`/bids/${rfq_id}/`, data);
   return res.data;
 };
 
